@@ -23,7 +23,16 @@ const Settings = () => {
   const [brandingForm, setBrandingForm] = useState({
     brandName: "",
     primaryColor: "#0d9488",
-    secondaryColor: "#115e59"
+    secondaryColor: "#115e59",
+    primaryHoverColor: "#0b7f71",
+    secondaryHoverColor: "#0b4f4c",
+    surfaceColor: "#f8fafc",
+    cardColor: "#ffffff",
+    textColor: "#0f172a",
+    mutedTextColor: "#64748b",
+    borderColor: "#e2e8f0",
+    buttonTextColor: "#ffffff",
+    shadowColor: "#0f172a"
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -53,7 +62,16 @@ const Settings = () => {
     setBrandingForm({
       brandName: branding.appName || "",
       primaryColor: branding.primaryColor || "#0d9488",
-      secondaryColor: branding.secondaryColor || "#115e59"
+      secondaryColor: branding.secondaryColor || "#115e59",
+      primaryHoverColor: branding.primaryHoverColor || "#0b7f71",
+      secondaryHoverColor: branding.secondaryHoverColor || "#0b4f4c",
+      surfaceColor: branding.surfaceColor || "#f8fafc",
+      cardColor: branding.cardColor || "#ffffff",
+      textColor: branding.textColor || "#0f172a",
+      mutedTextColor: branding.mutedTextColor || "#64748b",
+      borderColor: branding.borderColor || "#e2e8f0",
+      buttonTextColor: branding.buttonTextColor || "#ffffff",
+      shadowColor: branding.shadowColor || "#0f172a"
     });
   }, [branding]);
 
@@ -81,7 +99,16 @@ const Settings = () => {
         branding: {
           appName: brandingForm.brandName,
           primaryColor: brandingForm.primaryColor,
-          secondaryColor: brandingForm.secondaryColor
+          secondaryColor: brandingForm.secondaryColor,
+          primaryHoverColor: brandingForm.primaryHoverColor,
+          secondaryHoverColor: brandingForm.secondaryHoverColor,
+          surfaceColor: brandingForm.surfaceColor,
+          cardColor: brandingForm.cardColor,
+          textColor: brandingForm.textColor,
+          mutedTextColor: brandingForm.mutedTextColor,
+          borderColor: brandingForm.borderColor,
+          buttonTextColor: brandingForm.buttonTextColor,
+          shadowColor: brandingForm.shadowColor
         }
       };
       const { data } = await updateTenant(tenant.id, payload);
@@ -141,8 +168,8 @@ const Settings = () => {
   return (
     <DashboardLayout>
       <div className="max-w-4xl space-y-6">
-        <div className="bg-white rounded-3xl shadow-card p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Settings</h2>
+        <div className="bg-brand-card rounded-3xl shadow-card p-8">
+          <h2 className="text-2xl font-semibold text-brand-ink mb-6">Settings</h2>
           <div className="flex items-center gap-6">
             <img
               src={profileForm.avatar || "https://i.pravatar.cc/120"}
@@ -150,16 +177,16 @@ const Settings = () => {
               className="h-24 w-24 rounded-full object-cover"
             />
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-brand-ink">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-sm text-gray-500">{user?.email}</p>
+              <p className="text-sm text-brand-muted">{user?.email}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-card p-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl shadow-card p-8">
+          <h3 className="text-xl font-semibold text-brand-ink mb-4">
             Profile
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,13 +212,13 @@ const Settings = () => {
             />
           </div>
           <div className="mt-4">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-brand-ink">
               Profile picture
             </label>
             <input
               type="file"
               accept="image/*"
-              className="mt-2 block text-sm text-gray-600"
+              className="mt-2 block text-sm text-brand-muted"
               onChange={handleAvatarUpload}
             />
           </div>
@@ -212,8 +239,8 @@ const Settings = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-card p-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl shadow-card p-8">
+          <h3 className="text-xl font-semibold text-brand-ink mb-4">
             Brand Theme
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -228,7 +255,7 @@ const Settings = () => {
               }
             />
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-brand-ink">
                 Primary color
               </label>
               <div className="flex items-center gap-3">
@@ -241,15 +268,15 @@ const Settings = () => {
                       primaryColor: e.target.value
                     }))
                   }
-                  className="h-10 w-14 rounded-lg border border-gray-200"
+                  className="h-10 w-14 rounded-lg border border-brand-border"
                 />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-brand-muted">
                   {brandingForm.primaryColor}
                 </span>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-brand-ink">
                 Secondary color
               </label>
               <div className="flex items-center gap-3">
@@ -262,10 +289,199 @@ const Settings = () => {
                       secondaryColor: e.target.value
                     }))
                   }
-                  className="h-10 w-14 rounded-lg border border-gray-200"
+                  className="h-10 w-14 rounded-lg border border-brand-border"
                 />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-brand-muted">
                   {brandingForm.secondaryColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Primary hover color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.primaryHoverColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      primaryHoverColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.primaryHoverColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Secondary hover color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.secondaryHoverColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      secondaryHoverColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.secondaryHoverColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Surface background
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.surfaceColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      surfaceColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.surfaceColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Card background
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.cardColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      cardColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.cardColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Text color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.textColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      textColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.textColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Muted text color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.mutedTextColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      mutedTextColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.mutedTextColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Border color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.borderColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      borderColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.borderColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Button text color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.buttonTextColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      buttonTextColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.buttonTextColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Shadow color
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.shadowColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      shadowColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.shadowColor}
                 </span>
               </div>
             </div>
@@ -284,8 +500,8 @@ const Settings = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-card p-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl shadow-card p-8">
+          <h3 className="text-xl font-semibold text-brand-ink mb-4">
             Change Password
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

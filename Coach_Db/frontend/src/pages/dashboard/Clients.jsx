@@ -27,18 +27,18 @@ const Clients = () => {
     <DashboardLayout>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Clients</h2>
-          <p className="text-gray-500">Manage all of your client profiles</p>
+          <h2 className="text-2xl font-semibold text-brand-ink">Clients</h2>
+          <p className="text-brand-muted">Manage all of your client profiles</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Search</label>
+            <label className="text-sm text-brand-muted">Search</label>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Name, email, phone"
-              className="border border-gray-200 rounded-2xl px-3 py-2 text-sm"
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm"
             />
           </div>
           <Link to={buildPath("/clients/new")} className="w-48">
@@ -46,22 +46,22 @@ const Clients = () => {
           </Link>
         </div>
       </div>
-      <div className="bg-white rounded-3xl shadow-card p-6">
+      <div className="bg-brand-card rounded-3xl shadow-card p-6">
         {loading ? (
           <p>Loading clients...</p>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="text-left text-sm text-gray-500">
+              <tr className="text-left text-sm text-brand-muted">
                 <th className="pb-4">Client</th>
                 <th className="pb-4">Email</th>
                 <th className="pb-4">Goal</th>
                 {/* <th className="pb-4">Actions</th> */}
               </tr>
             </thead>
-            <tbody className="text-sm text-gray-700">
+            <tbody className="text-sm text-brand-ink">
               {filteredClients.map((client) => (
-                <tr key={client._id} className="border-t border-gray-100">
+                <tr key={client._id} className="border-t border-brand-border">
                   <td className="py-4 font-semibold">
                     {client.firstName} {client.lastName}
                   </td>
@@ -92,7 +92,7 @@ const Clients = () => {
                 <tr>
                   <td
                     colSpan="4"
-                    className="py-6 text-center text-gray-500 font-medium"
+                    className="py-6 text-center text-brand-muted font-medium"
                   >
                     {searchQuery.trim()
                       ? "No clients match your search."

@@ -62,13 +62,13 @@ const Signup = () => {
         subtitle="Enter your personal data to create your account."
       >
         <div className="space-y-6">
-          <button className="w-full border border-gray-200 rounded-2xl py-3 flex items-center justify-center gap-3 font-medium">
+          <button className="w-full border border-brand-border rounded-2xl py-3 flex items-center justify-center gap-3 font-medium">
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="" className="h-5 w-5" />
             Sign up with Google
           </button>
-          <div className="relative text-center text-sm text-gray-400">
-            <span className="bg-white px-3">Or</span>
-            <div className="h-px bg-gray-100 absolute inset-x-0 top-1/2 -z-10" />
+          <div className="relative text-center text-sm text-brand-muted">
+            <span className="bg-brand-card px-3">Or</span>
+            <div className="h-px bg-brand-border absolute inset-x-0 top-1/2 -z-10" />
           </div>
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 gap-4">
@@ -99,8 +99,8 @@ const Signup = () => {
                   type="button"
                   className={`border rounded-2xl py-3 font-semibold ${
                     (stepData.role || "coach") === role
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-200 hover:border-gray-900"
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-brand-border hover:border-brand-primary"
                   }`}
                   onClick={() => updateData({ role })}
                 >
@@ -112,9 +112,9 @@ const Signup = () => {
               {loading ? "Submitting..." : "Sign Up"}
             </PrimaryButton>
           </form>
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm text-brand-muted">
             Already have an account?{" "}
-            <a href="/login" className="font-semibold text-gray-900">
+            <a href="/login" className="font-semibold text-brand-ink">
               Log in
             </a>
           </p>

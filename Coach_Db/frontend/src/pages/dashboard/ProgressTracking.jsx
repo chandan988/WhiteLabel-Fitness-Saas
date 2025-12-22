@@ -7,10 +7,10 @@ const ProgressTracking = () => {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-gray-900">
+        <h2 className="text-2xl font-semibold text-brand-ink">
           Progress Tracking
         </h2>
-        <p className="text-gray-500">
+        <p className="text-brand-muted">
           Compare weight, steps, sleep and calorie trends.
         </p>
       </div>

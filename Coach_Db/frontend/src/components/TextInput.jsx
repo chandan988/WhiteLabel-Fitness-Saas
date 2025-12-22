@@ -9,12 +9,14 @@ const TextInput = ({
   ...rest
 }) => (
   <label className="block">
-    {label && <span className="text-sm font-medium text-gray-700">{label}</span>}
+    {label && (
+      <span className="text-sm font-medium text-brand-ink">{label}</span>
+    )}
     <div className="mt-1 relative">
       <input
         type={type}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-900/10 placeholder:text-gray-400"
+        className="w-full rounded-2xl border border-brand-border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary placeholder:text-brand-muted"
         {...(register ? register(name, { required }) : {})}
         {...rest}
       />

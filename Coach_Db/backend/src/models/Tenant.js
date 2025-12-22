@@ -5,7 +5,16 @@ const BrandingSchema = new mongoose.Schema(
     appName: { type: String, default: "Coach App" },
     logoUrl: String,
     primaryColor: { type: String, default: "#0f172a" },
-    secondaryColor: { type: String, default: "#38bdf8" }
+    secondaryColor: { type: String, default: "#38bdf8" },
+    primaryHoverColor: { type: String, default: "#0b7f71" },
+    secondaryHoverColor: { type: String, default: "#0b4f4c" },
+    surfaceColor: { type: String, default: "#f8fafc" },
+    cardColor: { type: String, default: "#ffffff" },
+    textColor: { type: String, default: "#0f172a" },
+    mutedTextColor: { type: String, default: "#64748b" },
+    borderColor: { type: String, default: "#e2e8f0" },
+    buttonTextColor: { type: String, default: "#ffffff" },
+    shadowColor: { type: String, default: "#0f172a" }
   },
   { _id: false }
 );

@@ -26,11 +26,11 @@ const AssignMeal = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-xl bg-white rounded-3xl p-8 shadow-card">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+      <div className="max-w-xl bg-brand-card rounded-3xl p-8 shadow-card">
+        <h2 className="text-2xl font-semibold text-brand-ink mb-2">
           Assign Meal Plan
         </h2>
-        <p className="text-gray-500 mb-6">
+        <p className="text-brand-muted mb-6">
           Build tailored nutrition guidance for the client.
         </p>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>

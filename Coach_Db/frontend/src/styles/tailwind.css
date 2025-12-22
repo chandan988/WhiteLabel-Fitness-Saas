@@ -5,6 +5,15 @@
 :root {
   --brand-primary: #0d9488;
   --brand-secondary: #115e59;
+  --brand-primary-hover: #0b7f71;
+  --brand-secondary-hover: #0b4f4c;
+  --brand-surface: #f8fafc;
+  --brand-card: #ffffff;
+  --brand-ink: #0f172a;
+  --brand-muted: #64748b;
+  --brand-border: #e2e8f0;
+  --brand-button-text: #ffffff;
+  --brand-shadow: rgba(15, 23, 42, 0.08);
 }
 
 body {

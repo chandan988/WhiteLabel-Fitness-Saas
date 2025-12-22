@@ -44,7 +44,7 @@ const statusBadge = (status) => {
       case "cold":
         return "bg-sky-100 text-sky-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-brand-surface text-brand-ink";
     }
   })();
   return { label, className };
@@ -195,43 +195,43 @@ const FollowUps = () => {
     <DashboardLayout>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Follow-ups</h2>
-          <p className="text-gray-500">
+          <h2 className="text-2xl font-semibold text-brand-ink">Follow-ups</h2>
+          <p className="text-brand-muted">
             Schedule callbacks and keep track of every conversation.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Call Date</label>
+            <label className="text-sm text-brand-muted">Call Date</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="border border-gray-200 rounded-2xl px-3 py-2 text-sm"
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Search</label>
+            <label className="text-sm text-brand-muted">Search</label>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Name, email, phone"
-              className="border border-gray-200 rounded-2xl px-3 py-2 text-sm"
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm"
             />
           </div>
         </div>
       </div>
-      <div className="bg-white rounded-3xl shadow-card p-6">
+      <div className="bg-brand-card rounded-3xl shadow-card p-6">
         {loading ? (
-          <p className="text-sm text-gray-500">Loading follow-ups...</p>
+          <p className="text-sm text-brand-muted">Loading follow-ups...</p>
         ) : error ? (
           <p className="text-sm text-red-500">{error}</p>
         ) : (
           <>
             <table className="w-full">
               <thead>
-                <tr className="text-left text-sm text-gray-500">
+                <tr className="text-left text-sm text-brand-muted">
                   <th className="pb-3">S. No.</th>
                   <th className="pb-3">Lead</th>
                   <th className="pb-3">Phone</th>
@@ -240,13 +240,13 @@ const FollowUps = () => {
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="text-sm text-gray-700">
+              <tbody className="text-sm text-brand-ink">
                 {rows.map((entry) => (
-                  <tr key={`${entry.leadId}-${entry.callbackAt}`} className="border-t border-gray-100">
+                  <tr key={`${entry.leadId}-${entry.callbackAt}`} className="border-t border-brand-border">
                     <td className="py-4 font-semibold">{entry.serial}</td>
                     <td className="py-4">
-                      <p className="font-semibold text-gray-900">{entry.name}</p>
-                      <p className="text-xs text-gray-500">{entry.email}</p>
+                      <p className="font-semibold text-brand-ink">{entry.name}</p>
+                      <p className="text-xs text-brand-muted">{entry.email}</p>
                     </td>
                     <td className="py-4">{entry.phone || "-"}</td>
                     <td className="py-4">
@@ -271,7 +271,7 @@ const FollowUps = () => {
                 ))}
                 {!rows.length && (
                   <tr>
-                    <td colSpan="6" className="py-6 text-center text-gray-500">
+                    <td colSpan="6" className="py-6 text-center text-brand-muted">
                       {searchQuery.trim()
                         ? "No follow-ups match your search."
                         : `No follow-ups scheduled for ${formatDate(date)}.`}
@@ -285,20 +285,20 @@ const FollowUps = () => {
       </div>
 
       {!loading && !error && upcomingRows.length > 0 && (
-        <div className="bg-white rounded-3xl shadow-card p-6 mt-6">
+        <div className="bg-brand-card rounded-3xl shadow-card p-6 mt-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-brand-ink">
                 Upcoming (Next 7 Days)
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-brand-muted">
                 Scheduled callbacks after {formatDate(date)}.
               </p>
             </div>
           </div>
           <table className="w-full">
             <thead>
-              <tr className="text-left text-sm text-gray-500">
+              <tr className="text-left text-sm text-brand-muted">
                 <th className="pb-3">S. No.</th>
                 <th className="pb-3">Lead</th>
                 <th className="pb-3">Phone</th>
@@ -307,16 +307,16 @@ const FollowUps = () => {
                 <th className="pb-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="text-sm text-gray-700">
+            <tbody className="text-sm text-brand-ink">
               {upcomingRows.map((entry) => (
                 <tr
                   key={`upcoming-${entry.leadId}-${entry.callbackAt}`}
-                  className="border-t border-gray-100"
+                  className="border-t border-brand-border"
                 >
                   <td className="py-4 font-semibold">{entry.serial}</td>
                   <td className="py-4">
-                    <p className="font-semibold text-gray-900">{entry.name}</p>
-                    <p className="text-xs text-gray-500">{entry.email}</p>
+                    <p className="font-semibold text-brand-ink">{entry.name}</p>
+                    <p className="text-xs text-brand-muted">{entry.email}</p>
                   </td>
                   <td className="py-4">{entry.phone || "-"}</td>
                   <td className="py-4">
@@ -346,34 +346,34 @@ const FollowUps = () => {
 
       {selectedLead && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-brand-card rounded-3xl shadow-xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-brand-ink">
                   Follow-ups for {selectedLead.name}
                 </h3>
-                <p className="text-sm text-gray-500">{selectedLead.email}</p>
+                <p className="text-sm text-brand-muted">{selectedLead.email}</p>
               </div>
               <button
-                className="text-sm text-gray-500 hover:text-gray-900"
+                className="text-sm text-brand-muted hover:text-brand-ink"
                 onClick={closeModal}
               >
                 Close
               </button>
             </div>
             {leadLoading ? (
-              <p className="text-sm text-gray-500">Loading lead details...</p>
+              <p className="text-sm text-brand-muted">Loading lead details...</p>
             ) : (
               <div className="space-y-4">
-                <div className="border border-gray-100 rounded-2xl p-4 max-h-64 overflow-y-auto">
+                <div className="border border-brand-border rounded-2xl p-4 max-h-64 overflow-y-auto">
                   {selectedLead.followUps && selectedLead.followUps.length ? (
                     selectedLead.followUps.map((entry, idx) => (
                       <div
                         key={`${entry.createdAt}-${idx}`}
-                        className="pb-3 mb-3 border-b border-dashed border-gray-100 last:border-b-0 last:mb-0 last:pb-0"
+                        className="pb-3 mb-3 border-b border-dashed border-brand-border last:border-b-0 last:mb-0 last:pb-0"
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs uppercase text-gray-400">
+                          <p className="text-xs uppercase text-brand-muted">
                             {formatDateTime(entry.createdAt)}
                           </p>
                           <span
@@ -383,24 +383,24 @@ const FollowUps = () => {
                           </span>
                         </div>
                         {entry.asked && (
-                          <p className="text-sm text-gray-800 mt-2">
-                            <span className="font-semibold text-gray-900">
+                          <p className="text-sm text-brand-ink mt-2">
+                            <span className="font-semibold text-brand-ink">
                               Follow-up:
                             </span>{" "}
                             {entry.asked}
                           </p>
                         )}
                         {entry.response && (
-                          <p className="text-sm text-gray-700 mt-1">
-                            <span className="font-semibold text-gray-900">
+                          <p className="text-sm text-brand-ink mt-1">
+                            <span className="font-semibold text-brand-ink">
                               Response:
                             </span>{" "}
                             {entry.response}
                           </p>
                         )}
                         {entry.callbackAt && (
-                          <p className="text-sm text-gray-700 mt-1">
-                            <span className="font-semibold text-gray-900">
+                          <p className="text-sm text-brand-ink mt-1">
+                            <span className="font-semibold text-brand-ink">
                               Call Back:
                             </span>{" "}
                             {formatDateTime(entry.callbackAt)}
@@ -409,7 +409,7 @@ const FollowUps = () => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-brand-muted">
                       No follow-ups recorded yet.
                     </p>
                   )}
@@ -435,7 +435,7 @@ const FollowUps = () => {
                     }
                   />
                   <div>
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-brand-ink">
                       Lead Status
                     </label>
                     <select
@@ -446,7 +446,7 @@ const FollowUps = () => {
                           status: e.target.value
                         }))
                       }
-                      className="mt-1 w-full border border-gray-200 rounded-2xl px-3 py-3 text-sm bg-white"
+                      className="mt-1 w-full border border-brand-border rounded-2xl px-3 py-3 text-sm bg-brand-card"
                     >
                       <option value="hot">Hot</option>
                       <option value="warm">Warm</option>
@@ -454,7 +454,7 @@ const FollowUps = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-brand-ink">
                       Callback Date &amp; Time
                     </label>
                     <input
@@ -466,7 +466,7 @@ const FollowUps = () => {
                           callbackAt: e.target.value
                         }))
                       }
-                      className="mt-1 w-full border border-gray-200 rounded-2xl px-3 py-3 text-sm bg-white"
+                      className="mt-1 w-full border border-brand-border rounded-2xl px-3 py-3 text-sm bg-brand-card"
                     />
                   </div>
                   <div className="flex items-center gap-3">

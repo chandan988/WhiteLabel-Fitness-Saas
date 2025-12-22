@@ -29,7 +29,7 @@ const RoleSelection = () => {
           <PrimaryButton onClick={() => selectRole("coach")}>I’m a Coach</PrimaryButton>
           <PrimaryButton
             onClick={() => selectRole("client")}
-            className="bg-white text-gray-900 border border-gray-200 hover:bg-gray-50"
+            className="bg-brand-card text-brand-ink border border-brand-border hover:bg-brand-surface"
           >
             I’m a Client
           </PrimaryButton>

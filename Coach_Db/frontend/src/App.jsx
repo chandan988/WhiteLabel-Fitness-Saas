@@ -23,7 +23,7 @@ const PrivateRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
+      <div className="min-h-screen flex items-center justify-center text-brand-muted">
         Loading organization...
       </div>
     );
@@ -31,7 +31,7 @@ const PrivateRoute = ({ children }) => {
 
   if (!tenant) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-gray-600">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-brand-muted">
         <p className="text-xl font-semibold">Organization unavailable</p>
         <p>{error || "Please confirm the link shared by your Super Admin."}</p>
         <a
@@ -185,18 +185,18 @@ const OrgScopedRoutes = () => {
 };
 
 const Landing = () => (
-  <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-6 text-center px-6">
+  <div className="min-h-screen bg-brand-surface flex flex-col items-center justify-center gap-6 text-center px-6">
     <div>
       <p className="text-sm uppercase tracking-widest text-brand-primary font-semibold">
         Coach Admin Portal
       </p>
-      <h1 className="text-4xl font-bold text-gray-900 mt-2">
+      <h1 className="text-4xl font-bold text-brand-ink mt-2">
         Enter your organization link to continue
       </h1>
     </div>
-    <p className="text-gray-600 max-w-2xl">
+    <p className="text-brand-muted max-w-2xl">
       Each coach gets a unique URL from the Super Admin. Visit that link
-      (example: <span className="font-mono text-gray-800">coachdb.com/your-org-id/login</span>) to
+      (example: <span className="font-mono text-brand-ink">coachdb.com/your-org-id/login</span>) to
       access your branded dashboard, clients, and leads. This landing page is
       intentionally blank for security.
     </p>

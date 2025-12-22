@@ -66,7 +66,16 @@ export const registerUser = async ({
         appName: safeName,
         logoUrl: env.defaultBrandLogo,
         primaryColor: "#0f172a",
-        secondaryColor: "#38bdf8"
+        secondaryColor: "#38bdf8",
+        primaryHoverColor: "#0b7f71",
+        secondaryHoverColor: "#0b4f4c",
+        surfaceColor: "#f8fafc",
+        cardColor: "#ffffff",
+        textColor: "#0f172a",
+        mutedTextColor: "#64748b",
+        borderColor: "#e2e8f0",
+        buttonTextColor: "#ffffff",
+        shadowColor: "#0f172a"
       },
       profile: {
         businessType: businessType || "Coaching",

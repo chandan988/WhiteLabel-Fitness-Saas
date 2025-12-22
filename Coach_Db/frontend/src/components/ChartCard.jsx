@@ -9,8 +9,8 @@ import {
 } from "recharts";
 
 const ChartCard = ({ title, data, color = "#0d9488" }) => (
-  <div className="bg-white rounded-3xl p-5 shadow-card flex flex-col">
-    <p className="font-semibold text-gray-900 mb-4">{title}</p>
+  <div className="bg-brand-card rounded-3xl p-5 shadow-card flex flex-col">
+    <p className="font-semibold text-brand-ink mb-4">{title}</p>
     <div className="flex-1">
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={data}>

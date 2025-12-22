@@ -175,7 +175,7 @@ const Leads = () => {
         case "cold":
           return "bg-sky-100 text-sky-700";
         default:
-          return "bg-gray-100 text-gray-700";
+          return "bg-brand-surface text-brand-ink";
       }
     })();
     return { label, className };
@@ -185,14 +185,14 @@ const Leads = () => {
     <DashboardLayout>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Leads</h2>
-          <p className="text-gray-500">
+          <h2 className="text-2xl font-semibold text-brand-ink">Leads</h2>
+          <p className="text-brand-muted">
             Track app users and convert warm prospects into clients.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Inquiry Date</label>
+            <label className="text-sm text-brand-muted">Inquiry Date</label>
             <input
               type="date"
               value={filters.inquiryDate || ""}
@@ -202,11 +202,11 @@ const Leads = () => {
                   inquiryDate: e.target.value
                 }))
               }
-              className="border border-gray-200 rounded-2xl px-3 py-2 text-sm"
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm"
             />
             {filters.inquiryDate && (
               <button
-                className="text-xs text-gray-500 underline"
+                className="text-xs text-brand-muted underline"
                 onClick={() =>
                   setFilters((prev) => ({ ...prev, inquiryDate: "" }))
                 }
@@ -216,13 +216,13 @@ const Leads = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Status</label>
+            <label className="text-sm text-brand-muted">Status</label>
             <select
               value={filters.status || ""}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, status: e.target.value }))
               }
-              className="border border-gray-200 rounded-2xl px-3 py-2 text-sm bg-white"
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm bg-brand-card"
             >
               <option value="">All</option>
               <option value="hot">Hot</option>
@@ -232,7 +232,7 @@ const Leads = () => {
             </select>
             {filters.status && (
               <button
-                className="text-xs text-gray-500 underline"
+                className="text-xs text-brand-muted underline"
                 onClick={() =>
                   setFilters((prev) => ({ ...prev, status: "" }))
                 }
@@ -242,13 +242,13 @@ const Leads = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Search</label>
+            <label className="text-sm text-brand-muted">Search</label>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Name, email, phone"
-              className="border border-gray-200 rounded-2xl px-3 py-2 text-sm"
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm"
             />
           </div>
           <PrimaryButton className="w-auto px-6 py-2" onClick={openCreateForm}>
@@ -256,16 +256,16 @@ const Leads = () => {
           </PrimaryButton>
         </div>
       </div>
-      <div className="bg-white rounded-3xl shadow-card p-6">
+      <div className="bg-brand-card rounded-3xl shadow-card p-6">
         {loading ? (
-          <p className="text-sm text-gray-500">Loading leads...</p>
+          <p className="text-sm text-brand-muted">Loading leads...</p>
         ) : error ? (
           <p className="text-sm text-red-500">{error}</p>
         ) : (
           <>
             <table className="w-full">
               <thead>
-                <tr className="text-left text-sm text-gray-500">
+                <tr className="text-left text-sm text-brand-muted">
                   <th className="pb-3">S. No.</th>
                   <th className="pb-3">Inquiry Date</th>
                   <th className="pb-3">Name</th>
@@ -275,9 +275,9 @@ const Leads = () => {
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="text-sm text-gray-700">
+              <tbody className="text-sm text-brand-ink">
                 {tableRows.map((lead) => (
-                  <tr key={lead.rawId || lead.id} className="border-t border-gray-100">
+                  <tr key={lead.rawId || lead.id} className="border-t border-brand-border">
                     <td className="py-4 font-semibold">{lead.serial}</td>
                     <td className="py-4">{formatDate(lead.inquiryDate)}</td>
                     <td className="py-4">{lead.name || "-"}</td>
@@ -293,7 +293,7 @@ const Leads = () => {
                     <td className="py-4">
                       <div className="flex items-center gap-3 justify-end">
                         <button
-                          className="text-sm font-semibold text-gray-500"
+                          className="text-sm font-semibold text-brand-muted"
                           onClick={() => openFollowUps(lead)}
                         >
                           Follow-ups
@@ -319,7 +319,7 @@ const Leads = () => {
                 ))}
                 {!tableRows.length && (
                   <tr>
-                    <td colSpan="7" className="py-6 text-center text-gray-500">
+                    <td colSpan="7" className="py-6 text-center text-brand-muted">
                       {searchQuery.trim()
                         ? "No leads match your search."
                         : "No leads pending. Great job!"}
@@ -337,20 +337,20 @@ const Leads = () => {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg p-8">
+          <div className="bg-brand-card rounded-3xl shadow-xl w-full max-w-lg p-8">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-brand-ink">
                   {editingLead ? "Edit Lead" : "Add Lead"}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-brand-muted">
                   {editingLead
                     ? "Update information for this lead."
                     : "Capture a new prospect to track from the dashboard."}
                 </p>
               </div>
               <button
-                className="text-sm text-gray-500 hover:text-gray-900"
+                className="text-sm text-brand-muted hover:text-brand-ink"
                 onClick={closeForm}
               >
                 Close
@@ -393,7 +393,7 @@ const Leads = () => {
                 </PrimaryButton>
                 <button
                   type="button"
-                  className="px-6 py-3 rounded-2xl border border-gray-200 font-semibold text-gray-600"
+                  className="px-6 py-3 rounded-2xl border border-brand-border font-semibold text-brand-muted"
                   onClick={closeForm}
                   disabled={saving}
                 >
@@ -407,16 +407,16 @@ const Leads = () => {
 
       {followUpModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-brand-card rounded-3xl shadow-xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-brand-ink">
                   Follow-ups for {followUpModal.name}
                 </h3>
-                <p className="text-sm text-gray-500">{followUpModal.email}</p>
+                <p className="text-sm text-brand-muted">{followUpModal.email}</p>
               </div>
               <button
-                className="text-sm text-gray-500 hover:text-gray-900"
+                className="text-sm text-brand-muted hover:text-brand-ink"
                 onClick={() => {
                   setFollowUpModal(null);
                   setFollowForm(followUpDefaults);
@@ -427,15 +427,15 @@ const Leads = () => {
               </button>
             </div>
             <div className="space-y-4">
-              <div className="border border-gray-100 rounded-2xl p-4 max-h-64 overflow-y-auto">
+              <div className="border border-brand-border rounded-2xl p-4 max-h-64 overflow-y-auto">
                 {followUpModal.followUps && followUpModal.followUps.length ? (
                   followUpModal.followUps.map((entry, idx) => (
                     <div
                       key={`${entry.createdAt}-${idx}`}
-                      className="pb-3 mb-3 border-b border-dashed border-gray-100 last:border-b-0 last:mb-0 last:pb-0"
+                      className="pb-3 mb-3 border-b border-dashed border-brand-border last:border-b-0 last:mb-0 last:pb-0"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs uppercase text-gray-400">
+                        <p className="text-xs uppercase text-brand-muted">
                           {formatDateTime(entry.createdAt)}
                         </p>
                           <span
@@ -445,24 +445,24 @@ const Leads = () => {
                           </span>
                       </div>
                       {entry.asked && (
-                        <p className="text-sm text-gray-800 mt-2">
-                          <span className="font-semibold text-gray-900">
+                        <p className="text-sm text-brand-ink mt-2">
+                          <span className="font-semibold text-brand-ink">
                             Follow-up:
                           </span>{" "}
                           {entry.asked}
                         </p>
                       )}
                       {entry.response && (
-                        <p className="text-sm text-gray-700 mt-1">
-                          <span className="font-semibold text-gray-900">
+                        <p className="text-sm text-brand-ink mt-1">
+                          <span className="font-semibold text-brand-ink">
                             Response:
                           </span>{" "}
                           {entry.response}
                         </p>
                       )}
                       {entry.callbackAt && (
-                        <p className="text-sm text-gray-700 mt-1">
-                          <span className="font-semibold text-gray-900">
+                        <p className="text-sm text-brand-ink mt-1">
+                          <span className="font-semibold text-brand-ink">
                             Call Back:
                           </span>{" "}
                           {formatDateTime(entry.callbackAt)}
@@ -471,7 +471,7 @@ const Leads = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-brand-muted">
                     No follow-ups recorded yet.
                   </p>
                 )}
@@ -497,7 +497,7 @@ const Leads = () => {
                   }
                 />
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-brand-ink">
                     Lead Status
                   </label>
                   <select
@@ -508,7 +508,7 @@ const Leads = () => {
                         status: e.target.value
                       }))
                     }
-                    className="mt-1 w-full border border-gray-200 rounded-2xl px-3 py-3 text-sm bg-white"
+                    className="mt-1 w-full border border-brand-border rounded-2xl px-3 py-3 text-sm bg-brand-card"
                   >
                     <option value="hot">Hot</option>
                     <option value="warm">Warm</option>
@@ -516,7 +516,7 @@ const Leads = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-brand-ink">
                     Callback Date &amp; Time
                   </label>
                   <input
@@ -528,7 +528,7 @@ const Leads = () => {
                         callbackAt: e.target.value
                       }))
                     }
-                    className="mt-1 w-full border border-gray-200 rounded-2xl px-3 py-3 text-sm bg-white"
+                    className="mt-1 w-full border border-brand-border rounded-2xl px-3 py-3 text-sm bg-brand-card"
                   />
                 </div>
                 <div className="flex items-center gap-3">

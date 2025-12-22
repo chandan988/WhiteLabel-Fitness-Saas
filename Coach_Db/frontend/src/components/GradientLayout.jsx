@@ -3,15 +3,15 @@ import { BrandLogo } from "../context/BrandingContext.jsx";
 
 const GradientLayout = ({ step, steps = [], children, cardAlign = "right" }) => {
   return (
-    <div className="min-h-screen flex items-stretch bg-white">
+    <div className="min-h-screen flex items-stretch bg-brand-card">
       <div className="w-1/2 hidden lg:flex">
         <div className="relative flex-1 rounded-[36px] m-6 p-10 bg-gradient-to-br from-[#eef6ee] via-[#d2ede8] to-[#9cc2b1] shadow-card">
           <BrandLogo className="h-14 mb-16" />
           <div className="max-w-sm">
-            <p className="text-4xl font-semibold text-gray-800 mb-4">
+            <p className="text-4xl font-semibold text-brand-ink mb-4">
               Get Started with Us
             </p>
-            <p className="text-gray-600">
+            <p className="text-brand-muted">
               Complete these easy steps to register your account.
             </p>
           </div>
@@ -23,22 +23,22 @@ const GradientLayout = ({ step, steps = [], children, cardAlign = "right" }) => 
                 <div
                   key={label}
                   className={clsx(
-                    "flex-1 rounded-2xl px-4 py-3 backdrop-blur bg-white/40 flex items-center gap-3 text-sm",
-                    active && "bg-white shadow"
+                    "flex-1 rounded-2xl px-4 py-3 backdrop-blur bg-brand-card flex items-center gap-3 text-sm",
+                    active && "bg-brand-card shadow"
                   )}
                 >
                   <span
                     className={clsx(
                       "h-8 w-8 rounded-full border flex items-center justify-center",
                       active
-                        ? "border-gray-900 bg-gray-900 text-white"
-                        : "border-white/80 text-gray-500"
+                        ? "border-brand-primary bg-brand-primary text-brand-buttonText"
+                        : "border-white/80 text-brand-muted"
                     )}
                   >
                     {index + 1}
                   </span>
                   <div>
-                    <p className="font-semibold text-gray-800">{label}</p>
+                    <p className="font-semibold text-brand-ink">{label}</p>
                   </div>
                 </div>
               );

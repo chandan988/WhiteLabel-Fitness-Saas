@@ -13,7 +13,7 @@ const ClientDetail = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <p className="text-gray-500">Loading client...</p>
+        <p className="text-brand-muted">Loading client...</p>
       </DashboardLayout>
     );
   }
@@ -21,7 +21,7 @@ const ClientDetail = () => {
   if (!client) {
     return (
       <DashboardLayout>
-        <p className="text-gray-500">Client not found.</p>
+        <p className="text-brand-muted">Client not found.</p>
       </DashboardLayout>
     );
   }
@@ -33,10 +33,10 @@ const ClientDetail = () => {
     <DashboardLayout>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
+          <h2 className="text-2xl font-semibold text-brand-ink">
             {client.firstName} {client.lastName}
           </h2>
-          <p className="text-gray-500">{client.email}</p>
+          <p className="text-brand-muted">{client.email}</p>
         </div>
         <div className="flex gap-3">
           <Link to={buildPath(`/clients/${id}/assign-meal`)} className="w-40">
@@ -48,23 +48,23 @@ const ClientDetail = () => {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-5">
-        <div className="bg-white rounded-3xl p-6 shadow-card col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl p-6 shadow-card col-span-2">
+          <h3 className="text-lg font-semibold text-brand-ink mb-4">
             Progress Tracking
           </h3>
-          <ul className="space-y-3 text-sm text-gray-600">
+          <ul className="space-y-3 text-sm text-brand-muted">
             <li>Weight: 78 kg</li>
             <li>Steps: 8,500 avg / week</li>
             <li>Sleep: 7 hrs avg</li>
             <li>Calories: 1,900 kcal avg</li>
           </ul>
         </div>
-        <div className="bg-white rounded-3xl p-6 shadow-card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl p-6 shadow-card">
+          <h3 className="text-lg font-semibold text-brand-ink mb-4">
             Meal Plan
           </h3>
           {mealPlan?.name ? (
-            <ul className="space-y-2 text-sm text-gray-600">
+            <ul className="space-y-2 text-sm text-brand-muted">
               <li>
                 <span className="font-semibold">Name:</span>{" "}
                 {mealPlan.name}
@@ -77,14 +77,14 @@ const ClientDetail = () => {
                 <span className="font-semibold">Notes:</span>{" "}
                 {mealPlan.notes || "No notes added"}
               </li>
-              <li className="text-xs text-gray-400">
+              <li className="text-xs text-brand-muted">
                 Updated {mealPlan.assignedAt
                   ? new Date(mealPlan.assignedAt).toLocaleString()
                   : ""}
               </li>
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-brand-muted">
               No meal plan assigned yet.
             </p>
           )}
@@ -92,12 +92,12 @@ const ClientDetail = () => {
       </div>
 
       <div className="grid grid-cols-3 gap-5 mt-6">
-        <div className="bg-white rounded-3xl p-6 shadow-card col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl p-6 shadow-card col-span-2">
+          <h3 className="text-lg font-semibold text-brand-ink mb-4">
             Workout Plan
           </h3>
           {workoutPlan?.name ? (
-            <div className="space-y-4 text-sm text-gray-600">
+            <div className="space-y-4 text-sm text-brand-muted">
               <div>
                 <p>
                   <span className="font-semibold">Name:</span>{" "}
@@ -107,7 +107,7 @@ const ClientDetail = () => {
                   <span className="font-semibold">Duration:</span>{" "}
                   {workoutPlan.duration || "-"} mins
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-brand-muted">
                   Updated{" "}
                   {workoutPlan.assignedAt
                     ? new Date(workoutPlan.assignedAt).toLocaleString()
@@ -129,16 +129,16 @@ const ClientDetail = () => {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-brand-muted">
               No workout plan assigned yet.
             </p>
           )}
         </div>
-        <div className="bg-white rounded-3xl p-6 shadow-card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-brand-card rounded-3xl p-6 shadow-card">
+          <h3 className="text-lg font-semibold text-brand-ink mb-4">
             Notes
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-brand-muted">
             Keep hydration high and stretch before evening runs.
           </p>
         </div>

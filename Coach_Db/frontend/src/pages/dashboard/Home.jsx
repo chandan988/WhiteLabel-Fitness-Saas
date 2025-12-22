@@ -44,7 +44,7 @@ const DashboardHome = () => {
 
   return (
     <DashboardLayout>
-      {loading && <p className="text-sm text-gray-500">Loading dashboard...</p>}
+      {loading && <p className="text-sm text-brand-muted">Loading dashboard...</p>}
       <div className="grid grid-cols-3 gap-5">
         {metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />

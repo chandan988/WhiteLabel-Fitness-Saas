@@ -33,7 +33,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   return (
-    <aside className="w-64 bg-brand-secondary text-white min-h-screen py-10 px-6 flex flex-col gap-10">
+    <aside className="w-64 bg-brand-secondary text-brand-buttonText min-h-screen py-10 px-6 flex flex-col gap-10">
       <div className="flex items-center gap-3">
         <img
           src={branding.logoUrl}
@@ -53,8 +53,8 @@ const Sidebar = () => {
               className={clsx(
                 "flex items-center gap-3 px-4 py-3 rounded-2xl transition",
                 active
-                  ? "bg-white text-gray-900 font-semibold"
-                  : "text-white/80 hover:bg-white/15"
+                  ? "bg-brand-card text-brand-ink font-semibold"
+                  : "text-brand-buttonText opacity-80 hover:opacity-100 hover:bg-brand-card"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -64,7 +64,7 @@ const Sidebar = () => {
         })}
       </nav>
       <button
-        className="text-left text-white/60 hover:text-white"
+        className="text-left text-brand-buttonText opacity-60 hover:opacity-100"
         onClick={() => {
           logout();
           navigate(`/${orgId}/login`);

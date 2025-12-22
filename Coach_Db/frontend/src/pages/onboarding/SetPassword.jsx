@@ -76,7 +76,7 @@ const SetPassword = () => {
             required
             minLength={8}
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-brand-muted">
             Must be at least 8 characters.
           </p>
           <PrimaryButton type="submit">Set Password</PrimaryButton>

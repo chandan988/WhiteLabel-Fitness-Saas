@@ -8,7 +8,16 @@ const defaultBrand = {
   appName: "Jeevanshaili",
   logoUrl: defaultLogo,
   primaryColor: "#0d9488",
-  secondaryColor: "#115e59"
+  secondaryColor: "#115e59",
+  primaryHoverColor: "#0b7f71",
+  secondaryHoverColor: "#0b4f4c",
+  surfaceColor: "#f8fafc",
+  cardColor: "#ffffff",
+  textColor: "#0f172a",
+  mutedTextColor: "#64748b",
+  borderColor: "#e2e8f0",
+  buttonTextColor: "#ffffff",
+  shadowColor: "#0f172a"
 };
 
 export const BrandingProvider = ({ children }) => {
@@ -22,7 +31,40 @@ export const BrandingProvider = ({ children }) => {
   }, [tenantLoading]);
 
   useEffect(() => {
+    const toRgb = (value = "") => {
+      const hex = value.replace("#", "");
+      if (hex.length !== 6) return null;
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      if ([r, g, b].some(Number.isNaN)) return null;
+      return { r, g, b };
+    };
+
+    const darkenHex = (value = "", ratio = 0.12) => {
+      const rgb = toRgb(value);
+      if (!rgb) return value;
+      const clamp = (val) => Math.max(0, Math.min(255, val));
+      const toHex = (val) => clamp(val).toString(16).padStart(2, "0");
+      return `#${toHex(rgb.r * (1 - ratio))}${toHex(rgb.g * (1 - ratio))}${toHex(
+        rgb.b * (1 - ratio)
+      )}`;
+    };
+
+    const hexToRgba = (value = "", alpha = 0.08) => {
+      const rgb = toRgb(value);
+      if (!rgb) return `rgba(15, 23, 42, ${alpha})`;
+      return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+    };
+
     const applyColors = (brand) => {
+      const primaryHover =
+        brand.primaryHoverColor || darkenHex(brand.primaryColor, 0.12);
+      const secondaryHover =
+        brand.secondaryHoverColor || darkenHex(brand.secondaryColor, 0.12);
+      const shadowColor = brand.shadowColor || brand.textColor;
+      const shadowRgba = hexToRgba(shadowColor, 0.12);
+
       document.documentElement.style.setProperty(
         "--brand-primary",
         brand.primaryColor
@@ -31,6 +73,39 @@ export const BrandingProvider = ({ children }) => {
         "--brand-secondary",
         brand.secondaryColor
       );
+      document.documentElement.style.setProperty(
+        "--brand-primary-hover",
+        primaryHover
+      );
+      document.documentElement.style.setProperty(
+        "--brand-secondary-hover",
+        secondaryHover
+      );
+      document.documentElement.style.setProperty(
+        "--brand-surface",
+        brand.surfaceColor
+      );
+      document.documentElement.style.setProperty(
+        "--brand-card",
+        brand.cardColor
+      );
+      document.documentElement.style.setProperty(
+        "--brand-ink",
+        brand.textColor
+      );
+      document.documentElement.style.setProperty(
+        "--brand-muted",
+        brand.mutedTextColor
+      );
+      document.documentElement.style.setProperty(
+        "--brand-border",
+        brand.borderColor
+      );
+      document.documentElement.style.setProperty(
+        "--brand-button-text",
+        brand.buttonTextColor
+      );
+      document.documentElement.style.setProperty("--brand-shadow", shadowRgba);
     };
 
     const preloadImage = (url) =>
@@ -51,7 +126,23 @@ export const BrandingProvider = ({ children }) => {
           primaryColor:
             tenant.branding?.primaryColor || defaultBrand.primaryColor,
           secondaryColor:
-            tenant.branding?.secondaryColor || defaultBrand.secondaryColor
+            tenant.branding?.secondaryColor || defaultBrand.secondaryColor,
+          primaryHoverColor:
+            tenant.branding?.primaryHoverColor || defaultBrand.primaryHoverColor,
+          secondaryHoverColor:
+            tenant.branding?.secondaryHoverColor ||
+            defaultBrand.secondaryHoverColor,
+          surfaceColor:
+            tenant.branding?.surfaceColor || defaultBrand.surfaceColor,
+          cardColor: tenant.branding?.cardColor || defaultBrand.cardColor,
+          textColor: tenant.branding?.textColor || defaultBrand.textColor,
+          mutedTextColor:
+            tenant.branding?.mutedTextColor || defaultBrand.mutedTextColor,
+          borderColor: tenant.branding?.borderColor || defaultBrand.borderColor,
+          buttonTextColor:
+            tenant.branding?.buttonTextColor || defaultBrand.buttonTextColor,
+          shadowColor:
+            tenant.branding?.shadowColor || defaultBrand.shadowColor
         }
       : defaultBrand;
 
@@ -88,7 +179,9 @@ export const BrandLogo = ({ className = "h-14", showPlaceholder = true }) => {
   const [imgError, setImgError] = useState(false);
 
   if (!logoLoaded && showPlaceholder) {
-    return <div className={`${className} bg-gray-200 animate-pulse rounded`} />;
+    return (
+      <div className={`${className} bg-brand-border animate-pulse rounded`} />
+    );
   }
 
   if (imgError) {

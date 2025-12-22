@@ -33,11 +33,11 @@ const AssignWorkout = () => {
 
   return (
     <DashboardLayout>
-      <div className="bg-white rounded-3xl p-8 shadow-card max-w-3xl">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+      <div className="bg-brand-card rounded-3xl p-8 shadow-card max-w-3xl">
+        <h2 className="text-2xl font-semibold text-brand-ink mb-2">
           Assign Workout Plan
         </h2>
-        <p className="text-gray-500 mb-6">
+        <p className="text-brand-muted mb-6">
           Build a guided routine with exercises.
         </p>
         <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -55,11 +55,11 @@ const AssignWorkout = () => {
             />
           </div>
           <div className="space-y-4">
-            <p className="font-semibold text-gray-900">Exercises</p>
+            <p className="font-semibold text-brand-ink">Exercises</p>
             {fields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid grid-cols-3 gap-3 bg-gray-50 rounded-2xl p-4"
+                className="grid grid-cols-3 gap-3 bg-brand-surface rounded-2xl p-4"
               >
                 <TextInput
                   placeholder="Exercise name"

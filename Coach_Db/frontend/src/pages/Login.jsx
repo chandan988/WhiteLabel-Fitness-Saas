@@ -25,7 +25,7 @@ const Login = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">
+      <div className="min-h-screen flex items-center justify-center bg-brand-surface text-brand-muted">
         Loading organization branding...
       </div>
     );
@@ -34,8 +34,8 @@ const Login = () => {
   if (!tenant) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-6">
-        <p className="text-2xl font-semibold text-gray-900">Organization not found</p>
-        <p className="text-gray-600 max-w-lg">
+        <p className="text-2xl font-semibold text-brand-ink">Organization not found</p>
+        <p className="text-brand-muted max-w-lg">
           {error || "Please verify the link sent by the Super Admin or contact support."}
         </p>
         <a
@@ -49,16 +49,16 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="bg-white rounded-3xl p-10 shadow-card w-full max-w-md space-y-2">
+    <div className="min-h-screen flex items-center justify-center bg-brand-surface px-4">
+      <div className="bg-brand-card rounded-3xl p-10 shadow-card w-full max-w-md space-y-2">
         <p className="text-sm uppercase tracking-widest text-brand-primary font-semibold">
           {tenant.branding?.appName || tenant.name}
         </p>
-        <h1 className="text-3xl font-semibold text-gray-900">
+        <h1 className="text-3xl font-semibold text-brand-ink">
           Log in to your dashboard
         </h1>
-        <p className="text-gray-500 mb-6">
-          Organization ID: <span className="font-mono text-gray-800">{orgId}</span>
+        <p className="text-brand-muted mb-6">
+          Organization ID: <span className="font-mono text-brand-ink">{orgId}</span>
         </p>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <TextInput
@@ -78,7 +78,7 @@ const Login = () => {
             Login
           </PrimaryButton>
         </form>
-        <p className="text-xs text-gray-500 mt-4">
+        <p className="text-xs text-brand-muted mt-4">
           Need help? Contact the Super Admin to reset your credentials or resend your
           onboarding email.
         </p>

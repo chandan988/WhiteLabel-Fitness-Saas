@@ -7,6 +7,7 @@ import { useOrgPath } from "../hooks/useOrgPath.js";
 import { getDueFollowUps } from "../services/api.js";
 
 const toDateKey = (date) => date.toISOString().split("T")[0];
+
 const formatTime = (value) => {
   if (!value) return "-";
   const instance = new Date(value);
@@ -16,6 +17,7 @@ const formatTime = (value) => {
     minute: "2-digit"
   });
 };
+
 const formatShortDate = (value) => {
   if (!value) return "-";
   const instance = new Date(value);
@@ -25,6 +27,7 @@ const formatShortDate = (value) => {
     day: "numeric"
   });
 };
+
 const statusClass = (status) => {
   switch ((status || "").toLowerCase()) {
     case "hot":
@@ -34,7 +37,7 @@ const statusClass = (status) => {
     case "warm":
       return "bg-amber-100 text-amber-700";
     default:
-      return "bg-gray-100 text-gray-700";
+      return "bg-brand-card text-brand-ink";
   }
 };
 
@@ -76,8 +79,8 @@ const TopBar = () => {
   return (
     <header className="flex items-center justify-between py-6">
       <div>
-        <p className="text-sm text-gray-500">Dashboard</p>
-        <h2 className="text-2xl font-semibold text-gray-900">
+        <p className="text-sm text-brand-muted">Dashboard</p>
+        <h2 className="text-2xl font-semibold text-brand-ink">
           Welcome back, {user?.firstName || "Coach"}
         </h2>
       </div>
@@ -85,11 +88,11 @@ const TopBar = () => {
         <img
           src={branding.logoUrl}
           alt="tenant logo"
-          className="h-10 w-10 rounded-full bg-white shadow"
+          className="h-10 w-10 rounded-full bg-brand-card shadow"
         />
         <div className="relative">
           <button
-            className="relative bg-white p-3 rounded-full shadow"
+            className="relative bg-brand-card p-3 rounded-full shadow"
             onClick={() => {
               const nextOpen = !notificationsOpen;
               setNotificationsOpen(nextOpen);
@@ -98,21 +101,21 @@ const TopBar = () => {
               }
             }}
           >
-            <BellIcon className="h-5 w-5 text-gray-600" />
+            <BellIcon className="h-5 w-5 text-brand-muted" />
             {dueFollowUps.length > 0 && (
               <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full" />
             )}
           </button>
           {notificationsOpen && (
-            <div className="absolute right-0 mt-3 w-80 bg-white shadow-lg rounded-2xl p-4 z-50">
+            <div className="absolute right-0 mt-3 w-80 bg-brand-card shadow-lg rounded-2xl p-4 z-50">
               <div className="flex items-center justify-between mb-3">
-                <p className="font-semibold text-gray-900">Today's Calls</p>
-                <span className="text-xs text-gray-500">
+                <p className="font-semibold text-brand-ink">Today's Calls</p>
+                <span className="text-xs text-brand-muted">
                   {dueFollowUps.length} due
                 </span>
               </div>
               {loading ? (
-                <p className="text-sm text-gray-500">Loading follow-ups...</p>
+                <p className="text-sm text-brand-muted">Loading follow-ups...</p>
               ) : (
                 <>
                   {dueFollowUps.length ? (
@@ -120,7 +123,7 @@ const TopBar = () => {
                       {dueFollowUps.map((entry) => (
                         <button
                           key={`${entry.leadId}-${entry.callbackAt}`}
-                          className="w-full text-left px-3 py-2 rounded-xl border border-gray-100 hover:bg-gray-50"
+                          className="w-full text-left px-3 py-2 rounded-xl border border-brand-border hover:bg-brand-surface"
                           onClick={() => {
                             const dateKey = entry.callbackAt
                               ? toDateKey(new Date(entry.callbackAt))
@@ -134,7 +137,7 @@ const TopBar = () => {
                           }}
                         >
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-brand-ink">
                               {entry.name}
                             </p>
                             <span
@@ -147,25 +150,25 @@ const TopBar = () => {
                                 .toUpperCase()}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {formatShortDate(entry.callbackAt)} •{" "}
+                          <p className="text-xs text-brand-muted">
+                            {formatShortDate(entry.callbackAt)} -{" "}
                             {formatTime(entry.callbackAt)}
                           </p>
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-brand-muted">
                       No follow-ups scheduled for today.
                     </p>
                   )}
                   {upcomingFollowUps.length > 0 && (
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-brand-ink">
                           Upcoming Calls
                         </p>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-brand-muted">
                           {upcomingFollowUps.length}
                         </span>
                       </div>
@@ -173,7 +176,7 @@ const TopBar = () => {
                         {upcomingFollowUps.map((entry) => (
                           <button
                             key={`upcoming-${entry.leadId}-${entry.callbackAt}`}
-                            className="w-full text-left px-3 py-2 rounded-xl border border-gray-100 hover:bg-gray-50"
+                            className="w-full text-left px-3 py-2 rounded-xl border border-brand-border hover:bg-brand-surface"
                             onClick={() => {
                               const dateKey = entry.callbackAt
                                 ? toDateKey(new Date(entry.callbackAt))
@@ -187,7 +190,7 @@ const TopBar = () => {
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-sm font-semibold text-brand-ink">
                                 {entry.name}
                               </p>
                               <span
@@ -200,8 +203,8 @@ const TopBar = () => {
                                   .toUpperCase()}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-500">
-                              {formatShortDate(entry.callbackAt)} •{" "}
+                            <p className="text-xs text-brand-muted">
+                              {formatShortDate(entry.callbackAt)} -{" "}
                               {formatTime(entry.callbackAt)}
                             </p>
                           </button>
@@ -221,10 +224,10 @@ const TopBar = () => {
             className="h-10 w-10 rounded-full object-cover"
           />
           <div>
-            <p className="font-semibold text-gray-900">
+            <p className="font-semibold text-brand-ink">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-sm text-gray-500">{user?.role}</p>
+            <p className="text-sm text-brand-muted">{user?.role}</p>
           </div>
         </div>
       </div>

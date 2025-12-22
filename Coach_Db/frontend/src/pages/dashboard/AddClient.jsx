@@ -20,11 +20,11 @@ const AddClient = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl bg-white rounded-3xl shadow-card p-8">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+      <div className="max-w-2xl bg-brand-card rounded-3xl shadow-card p-8">
+        <h2 className="text-2xl font-semibold text-brand-ink mb-4">
           Add New Client
         </h2>
-        <p className="text-gray-500 mb-8">
+        <p className="text-brand-muted mb-8">
           Capture the essential information to invite your client.
         </p>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
