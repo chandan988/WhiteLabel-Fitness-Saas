@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import DashboardLayout from "./DashboardLayout.jsx";
 import { useClients } from "../../hooks/useClients.js";
 import PrimaryButton from "../../components/PrimaryButton.jsx";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useOrgPath } from "../../hooks/useOrgPath.js";
 
 const Clients = () => {
-  const { clients, loading, convertBackToLead, revertingId } = useClients();
+  const { clients, loading } = useClients();
   const buildPath = useOrgPath();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredClients = useMemo(() => {
@@ -61,7 +62,11 @@ const Clients = () => {
             </thead>
             <tbody className="text-sm text-brand-ink">
               {filteredClients.map((client) => (
-                <tr key={client._id} className="border-t border-brand-border">
+                <tr
+                  key={client._id}
+                  className="border-t border-brand-border cursor-pointer"
+                  onClick={() => navigate(buildPath(`/clients/${client._id}`))}
+                >
                   <td className="py-4 font-semibold">
                     {client.firstName} {client.lastName}
                   </td>
@@ -72,6 +77,7 @@ const Clients = () => {
                       <Link
                         to={buildPath(`/clients/${client._id}`)}
                         className="text-brand-primary font-semibold"
+                        onClick={(event) => event.stopPropagation()}
                       >
                         View
                       </Link>

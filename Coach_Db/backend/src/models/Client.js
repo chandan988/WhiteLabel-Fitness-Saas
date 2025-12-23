@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const ClientSchema = new mongoose.Schema(
   {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     email: { type: String, required: true },
@@ -12,16 +13,39 @@ const ClientSchema = new mongoose.Schema(
       name: String,
       calories: String,
       notes: String,
+      items: [
+        {
+          foodId: String,
+          foodName: String,
+          energyKcal: Number,
+          carbs: Number,
+          protein: Number,
+          fat: Number,
+          servingsUnit: String,
+          imageUrl: String
+        }
+      ],
       assignedAt: { type: Date, default: Date.now }
     },
     workoutPlan: {
       name: String,
       duration: Number,
+      notes: String,
       exercises: [
         {
           name: String,
           sets: Number,
           reps: Number
+        }
+      ],
+      items: [
+        {
+          workoutId: String,
+          workoutName: String,
+          category: String,
+          unit: String,
+          caloriesPerMin: Number,
+          caloriesPerRep: Number
         }
       ],
       assignedAt: { type: Date, default: Date.now }

@@ -11,6 +11,21 @@ import {
   updateTenant
 } from "../../services/api.js";
 
+const DEFAULT_BRANDING = {
+  brandName: "Jeevanshaili",
+  primaryColor: "#0d9488",
+  secondaryColor: "#115e59",
+  primaryHoverColor: "#0b7f71",
+  secondaryHoverColor: "#0b4f4c",
+  surfaceColor: "#f8fafc",
+  cardColor: "#ffffff",
+  textColor: "#0f172a",
+  mutedTextColor: "#64748b",
+  borderColor: "#e2e8f0",
+  buttonTextColor: "#ffffff",
+  shadowColor: "#0f172a"
+};
+
 const Settings = () => {
   const { branding } = useBranding();
   const { user, setUser } = useAuth();
@@ -21,18 +36,8 @@ const Settings = () => {
     avatar: ""
   });
   const [brandingForm, setBrandingForm] = useState({
-    brandName: "",
-    primaryColor: "#0d9488",
-    secondaryColor: "#115e59",
-    primaryHoverColor: "#0b7f71",
-    secondaryHoverColor: "#0b4f4c",
-    surfaceColor: "#f8fafc",
-    cardColor: "#ffffff",
-    textColor: "#0f172a",
-    mutedTextColor: "#64748b",
-    borderColor: "#e2e8f0",
-    buttonTextColor: "#ffffff",
-    shadowColor: "#0f172a"
+    ...DEFAULT_BRANDING,
+    brandName: ""
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -60,20 +65,67 @@ const Settings = () => {
 
   useEffect(() => {
     setBrandingForm({
+      ...DEFAULT_BRANDING,
       brandName: branding.appName || "",
-      primaryColor: branding.primaryColor || "#0d9488",
-      secondaryColor: branding.secondaryColor || "#115e59",
-      primaryHoverColor: branding.primaryHoverColor || "#0b7f71",
-      secondaryHoverColor: branding.secondaryHoverColor || "#0b4f4c",
-      surfaceColor: branding.surfaceColor || "#f8fafc",
-      cardColor: branding.cardColor || "#ffffff",
-      textColor: branding.textColor || "#0f172a",
-      mutedTextColor: branding.mutedTextColor || "#64748b",
-      borderColor: branding.borderColor || "#e2e8f0",
-      buttonTextColor: branding.buttonTextColor || "#ffffff",
-      shadowColor: branding.shadowColor || "#0f172a"
+      primaryColor: branding.primaryColor || DEFAULT_BRANDING.primaryColor,
+      secondaryColor: branding.secondaryColor || DEFAULT_BRANDING.secondaryColor,
+      primaryHoverColor:
+        branding.primaryHoverColor || DEFAULT_BRANDING.primaryHoverColor,
+      secondaryHoverColor:
+        branding.secondaryHoverColor || DEFAULT_BRANDING.secondaryHoverColor,
+      surfaceColor: branding.surfaceColor || DEFAULT_BRANDING.surfaceColor,
+      cardColor: branding.cardColor || DEFAULT_BRANDING.cardColor,
+      textColor: branding.textColor || DEFAULT_BRANDING.textColor,
+      mutedTextColor: branding.mutedTextColor || DEFAULT_BRANDING.mutedTextColor,
+      borderColor: branding.borderColor || DEFAULT_BRANDING.borderColor,
+      buttonTextColor:
+        branding.buttonTextColor || DEFAULT_BRANDING.buttonTextColor,
+      shadowColor: branding.shadowColor || DEFAULT_BRANDING.shadowColor
     });
   }, [branding]);
+
+  const handleResetBranding = async () => {
+    if (!tenant?.id) return;
+    const resetValues = {
+      ...DEFAULT_BRANDING,
+      brandName: tenant?.name || DEFAULT_BRANDING.brandName
+    };
+    setBrandSaving(true);
+    setBrandMessage("");
+    try {
+      const payload = {
+        branding: {
+          appName: resetValues.brandName,
+          primaryColor: resetValues.primaryColor,
+          secondaryColor: resetValues.secondaryColor,
+          primaryHoverColor: resetValues.primaryHoverColor,
+          secondaryHoverColor: resetValues.secondaryHoverColor,
+          surfaceColor: resetValues.surfaceColor,
+          cardColor: resetValues.cardColor,
+          textColor: resetValues.textColor,
+          mutedTextColor: resetValues.mutedTextColor,
+          borderColor: resetValues.borderColor,
+          buttonTextColor: resetValues.buttonTextColor,
+          shadowColor: resetValues.shadowColor
+        }
+      };
+      const { data } = await updateTenant(tenant.id, payload);
+      setTenant((prev) => ({
+        ...(prev || {}),
+        ...data,
+        id: data.id || data._id || prev?.id,
+        branding: data.branding || prev?.branding
+      }));
+      setBrandingForm(resetValues);
+      setBrandMessage("Branding reset to default.");
+    } catch (err) {
+      setBrandMessage(
+        err.response?.data?.message || "Failed to reset branding"
+      );
+    } finally {
+      setBrandSaving(false);
+    }
+  };
 
   const handleProfileSave = async () => {
     setProfileSaving(true);
@@ -489,7 +541,7 @@ const Settings = () => {
           {brandMessage && (
             <p className="text-sm text-emerald-600 mt-3">{brandMessage}</p>
           )}
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <PrimaryButton
               type="button"
               onClick={handleBrandSave}
@@ -497,6 +549,14 @@ const Settings = () => {
             >
               {brandSaving ? "Saving..." : "Save Settings"}
             </PrimaryButton>
+            <button
+              type="button"
+              className="px-6 py-3 rounded-2xl border border-brand-border text-brand-ink font-semibold"
+              onClick={handleResetBranding}
+              disabled={brandSaving || !tenant?.id}
+            >
+              Reset to Default
+            </button>
           </div>
         </div>
 

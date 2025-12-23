@@ -11,6 +11,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import brandingRoutes from "./routes/brandingRoutes.js";
 import leadRoutes from "./routes/leadRoutes.js";
 import followUpRoutes from "./routes/followUpRoutes.js";
+import libraryRoutes from "./routes/libraryRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { logger } from "./utils/logger.js";
 
@@ -35,6 +36,7 @@ app.use("/dashboard", dashboardRoutes);
 app.use("/branding", brandingRoutes);
 app.use("/leads", leadRoutes);
 app.use("/followups", followUpRoutes);
+app.use("/library", libraryRoutes);
 
 app.use(errorHandler);
 

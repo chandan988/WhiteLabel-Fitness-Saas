@@ -1,6 +1,9 @@
 import { Router } from "express";
 import {
   createClientController,
+  assignMealController,
+  assignWorkoutController,
+  getClientHealthController,
   getClientController,
   listClientsController,
   updateClientController
@@ -31,6 +34,27 @@ router.get(
   authenticate,
   authorizeRoles("coach", "superadmin"),
   getClientController
+);
+
+router.get(
+  "/:id/health",
+  authenticate,
+  authorizeRoles("coach", "superadmin"),
+  getClientHealthController
+);
+
+router.post(
+  "/:id/assign-workout",
+  authenticate,
+  authorizeRoles("coach", "superadmin"),
+  assignWorkoutController
+);
+
+router.post(
+  "/:id/assign-meal",
+  authenticate,
+  authorizeRoles("coach", "superadmin"),
+  assignMealController
 );
 
 router.patch(

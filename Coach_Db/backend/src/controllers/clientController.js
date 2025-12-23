@@ -4,6 +4,11 @@ import {
   getClients,
   updateClient
 } from "../services/clientService.js";
+import {
+  assignMealToClient,
+  assignWorkoutToClient,
+  getClientHealth
+} from "../services/clientHealthService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { logger } from "../utils/logger.js";
 
@@ -38,5 +43,38 @@ export const getClientController = asyncHandler(async (req, res) => {
 export const updateClientController = asyncHandler(async (req, res) => {
   logger.info("Updating client", { clientId: req.params.id });
   const client = await updateClient(req.params.id, req.body);
+  res.json(client);
+});
+
+export const getClientHealthController = asyncHandler(async (req, res) => {
+  logger.info("Fetching client health", { clientId: req.params.id });
+  const health = await getClientHealth({
+    clientId: req.params.id,
+    tenantId: req.user.tenantId,
+    limit: req.query.limit
+  });
+  res.json(health);
+});
+
+export const assignWorkoutController = asyncHandler(async (req, res) => {
+  logger.info("Assigning workout", { clientId: req.params.id });
+  const client = await assignWorkoutToClient({
+    clientId: req.params.id,
+    tenantId: req.user.tenantId,
+    workoutId: req.body.workoutId,
+    duration: req.body.duration,
+    notes: req.body.notes
+  });
+  res.json(client);
+});
+
+export const assignMealController = asyncHandler(async (req, res) => {
+  logger.info("Assigning meal", { clientId: req.params.id });
+  const client = await assignMealToClient({
+    clientId: req.params.id,
+    tenantId: req.user.tenantId,
+    foodId: req.body.foodId,
+    notes: req.body.notes
+  });
   res.json(client);
 });

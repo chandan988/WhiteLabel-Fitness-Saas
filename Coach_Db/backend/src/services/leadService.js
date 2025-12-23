@@ -228,6 +228,7 @@ export const convertLead = async ({ leadId, tenantId, userId }) => {
       lastName: lastName.trim(),
       email: lead.email,
       phone: lead.phone || "Not provided",
+      userId: lead._id,
       tenantId,
       createdBy: userId
     });
