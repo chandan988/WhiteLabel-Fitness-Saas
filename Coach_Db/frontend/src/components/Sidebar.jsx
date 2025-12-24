@@ -33,7 +33,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   return (
-    <aside className="w-64 bg-brand-secondary text-brand-buttonText min-h-screen py-10 px-6 flex flex-col gap-10">
+    <aside className="w-64 bg-brand-sidebar text-brand-buttonText min-h-screen py-10 px-6 flex flex-col gap-10">
       <div className="flex items-center gap-3">
         <img
           src={branding.logoUrl}

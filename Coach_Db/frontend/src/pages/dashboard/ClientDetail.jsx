@@ -1,10 +1,13 @@
 import { useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import DashboardLayout from "./DashboardLayout.jsx";
 import PrimaryButton from "../../components/PrimaryButton.jsx";
 import TextInput from "../../components/TextInput.jsx";
 import ChartCard from "../../components/ChartCard.jsx";
 import { useClientDetail } from "../../hooks/useClientDetail.js";
+import { useBranding } from "../../context/BrandingContext.jsx";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -97,7 +100,15 @@ const ClientDetail = () => {
     searchFoods,
     searchWorkouts
   } = useClientDetail(id);
+  const { branding } = useBranding();
+  const reportRef = useRef(null);
+  const chartColor = "#fb923c";
 
+  const [chartVariants, setChartVariants] = useState({
+    steps: "line",
+    calories: "line",
+    weight: "line"
+  });
   const [period, setPeriod] = useState("week");
   const [workoutQuery, setWorkoutQuery] = useState("");
   const [workoutResults, setWorkoutResults] = useState([]);
@@ -107,6 +118,10 @@ const ClientDetail = () => {
   const [workoutDuration, setWorkoutDuration] = useState("");
   const [mealNotes, setMealNotes] = useState("");
   const [actionError, setActionError] = useState("");
+
+  const updateChartVariant = (key, next) => {
+    setChartVariants((prev) => ({ ...prev, [key]: next }));
+  };
 
   const rangeDays = period === "month" ? 30 : 7;
   const rangeStart = useMemo(() => {
@@ -297,6 +312,43 @@ const ClientDetail = () => {
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (!client) return;
+    const safeName = `${client.firstName || "client"}-${client.lastName || ""}`
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9-_]/g, "")
+      .toLowerCase();
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const node = reportRef.current;
+    if (!node) return;
+    const canvas = await html2canvas(node, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff"
+    });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "pt", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(`${safeName || "client"}-report-${dateTag}.pdf`);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -332,29 +384,34 @@ const ClientDetail = () => {
           <p className="text-brand-muted">{client.email}</p>
           <p className="text-brand-muted">{client.phone || "No phone"}</p>
         </div>
-        <div className="bg-brand-card rounded-2xl shadow-card p-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPeriod("week")}
-            className={`px-4 py-2 rounded-2xl text-sm font-semibold ${
-              period === "week"
-                ? "bg-brand-primary text-brand-buttonText"
-                : "text-brand-muted"
-            }`}
-          >
-            Last 7 Days
-          </button>
-          <button
-            type="button"
-            onClick={() => setPeriod("month")}
-            className={`px-4 py-2 rounded-2xl text-sm font-semibold ${
-              period === "month"
-                ? "bg-brand-primary text-brand-buttonText"
-                : "text-brand-muted"
-            }`}
-          >
-            Last 30 Days
-          </button>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="bg-brand-card rounded-2xl shadow-card p-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPeriod("week")}
+              className={`px-4 py-2 rounded-2xl text-sm font-semibold ${
+                period === "week"
+                  ? "bg-brand-primary text-brand-buttonText"
+                  : "text-brand-muted"
+              }`}
+            >
+              Last 7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod("month")}
+              className={`px-4 py-2 rounded-2xl text-sm font-semibold ${
+                period === "month"
+                  ? "bg-brand-primary text-brand-buttonText"
+                  : "text-brand-muted"
+              }`}
+            >
+              Last 30 Days
+            </button>
+          </div>
+          <PrimaryButton className="w-auto px-6" onClick={handleDownloadReport}>
+            Download Report
+          </PrimaryButton>
         </div>
       </div>
 
@@ -376,23 +433,32 @@ const ClientDetail = () => {
         <ChartCard
           title="Steps Trend"
           data={stepsSeries}
-          color="var(--brand-primary)"
+          color={chartColor}
           xKey="label"
           yKey="value"
+          showToggle
+          variant={chartVariants.steps}
+          onVariantChange={(next) => updateChartVariant("steps", next)}
         />
         <ChartCard
           title="Calories Intake"
           data={caloriesSeries}
-          color="var(--brand-secondary)"
+          color={chartColor}
           xKey="label"
           yKey="value"
+          showToggle
+          variant={chartVariants.calories}
+          onVariantChange={(next) => updateChartVariant("calories", next)}
         />
         <ChartCard
           title="Weight Trend"
           data={weightSeries}
-          color="#fb923c"
+          color={chartColor}
           xKey="label"
           yKey="value"
+          showToggle
+          variant={chartVariants.weight}
+          onVariantChange={(next) => updateChartVariant("weight", next)}
         />
       </div>
 
@@ -785,6 +851,153 @@ const ClientDetail = () => {
             {actionError && (
               <p className="text-xs text-red-500">{actionError}</p>
             )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        ref={reportRef}
+        style={{ position: "absolute", left: "-10000px", top: 0, width: 900 }}
+        className="bg-white text-slate-900 p-10 space-y-6"
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+          <div className="flex items-center gap-4">
+            <img
+              src={branding.logoUrl}
+              alt={branding.appName}
+              className="h-12 w-12 rounded-xl object-contain"
+              crossOrigin="anonymous"
+            />
+            <div>
+              <p className="text-sm uppercase tracking-wide text-slate-500">
+                {branding.appName}
+              </p>
+              <h1 className="text-2xl font-semibold">Client Health Report</h1>
+              <p className="text-sm text-slate-500">
+                Generated {new Date().toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <div className="text-right text-sm">
+            <p className="font-semibold">
+              {client.firstName} {client.lastName}
+            </p>
+            <p>{client.email}</p>
+            <p>{client.phone || "-"}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          {summaryCards.map((card) => (
+            <div key={card.label} className="bg-slate-50 rounded-2xl p-4">
+              <p className="text-xs uppercase text-slate-500">{card.label}</p>
+              <p className="text-lg font-semibold text-slate-900 mt-2">
+                {card.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <ChartCard
+            title="Steps Trend"
+            data={stepsSeries}
+            color={chartColor}
+            xKey="label"
+            yKey="value"
+            height={200}
+          />
+          <ChartCard
+            title="Calories Intake"
+            data={caloriesSeries}
+            color={chartColor}
+            xKey="label"
+            yKey="value"
+            height={200}
+          />
+          <ChartCard
+            title="Weight Trend"
+            data={weightSeries}
+            color={chartColor}
+            xKey="label"
+            yKey="value"
+            height={200}
+          />
+          <ChartCard
+            title="Water Intake"
+            data={waterSeries}
+            color={chartColor}
+            xKey="label"
+            yKey="value"
+            height={200}
+          />
+          <ChartCard
+            title="Sleep Hours"
+            data={sleepSeries}
+            color={chartColor}
+            xKey="label"
+            yKey="value"
+            height={200}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <div className="bg-slate-50 rounded-2xl p-4">
+            <h2 className="text-base font-semibold mb-3">Recent Workouts</h2>
+            <div className="space-y-2 text-sm text-slate-600">
+              {filteredWorkouts.slice(0, 6).map((workout) => (
+                <div key={workout._id} className="flex justify-between">
+                  <span>{formatDate(workout.dateObj || workout.date)}</span>
+                  <span>{workout.workouts?.length || 0} sessions</span>
+                </div>
+              ))}
+              {!filteredWorkouts.length && <p>No workouts logged.</p>}
+            </div>
+          </div>
+          <div className="bg-slate-50 rounded-2xl p-4">
+            <h2 className="text-base font-semibold mb-3">Recent Meals</h2>
+            <div className="space-y-2 text-sm text-slate-600">
+              {filteredFoods.slice(0, 6).map((log) => (
+                <div key={log._id} className="flex justify-between">
+                  <span>{formatDate(log.date || log.createdAt)}</span>
+                  <span>
+                    {log.dailyTotals?.calories
+                      ? `${Math.round(log.dailyTotals.calories)} kcal`
+                      : "-"}
+                  </span>
+                </div>
+              ))}
+              {!filteredFoods.length && <p>No meals logged.</p>}
+            </div>
+          </div>
+          <div className="bg-slate-50 rounded-2xl p-4">
+            <h2 className="text-base font-semibold mb-3">Recent Sleep</h2>
+            <div className="space-y-2 text-sm text-slate-600">
+              {filteredSleeps.slice(0, 6).map((entry) => (
+                <div key={entry._id} className="flex flex-col">
+                  <span>{formatDate(entry.date || entry.sleep_time)}</span>
+                  <span className="text-xs">
+                    {formatDateTime(entry.sleep_time)} to{" "}
+                    {formatDateTime(entry.wake_time)}
+                  </span>
+                </div>
+              ))}
+              {!filteredSleeps.length && <p>No sleep logs.</p>}
+            </div>
+          </div>
+          <div className="bg-slate-50 rounded-2xl p-4">
+            <h2 className="text-base font-semibold mb-3">Progress Benchmarks</h2>
+            <div className="space-y-3">
+              {benchmarks.map((item) => (
+                <ProgressBar
+                  key={item.label}
+                  label={item.label}
+                  current={item.current}
+                  target={item.target}
+                  unit={item.unit}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

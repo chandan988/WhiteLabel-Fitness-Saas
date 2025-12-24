@@ -11,6 +11,7 @@ const defaultBrand = {
   secondaryColor: "#115e59",
   primaryHoverColor: "#0b7f71",
   secondaryHoverColor: "#0b4f4c",
+  sidebarColor: "#115e59",
   surfaceColor: "#f8fafc",
   cardColor: "#ffffff",
   textColor: "#0f172a",
@@ -82,6 +83,10 @@ export const BrandingProvider = ({ children }) => {
         secondaryHover
       );
       document.documentElement.style.setProperty(
+        "--brand-sidebar",
+        brand.sidebarColor || brand.secondaryColor
+      );
+      document.documentElement.style.setProperty(
         "--brand-surface",
         brand.surfaceColor
       );
@@ -132,6 +137,7 @@ export const BrandingProvider = ({ children }) => {
           secondaryHoverColor:
             tenant.branding?.secondaryHoverColor ||
             defaultBrand.secondaryHoverColor,
+          sidebarColor: tenant.branding?.sidebarColor || defaultBrand.sidebarColor,
           surfaceColor:
             tenant.branding?.surfaceColor || defaultBrand.surfaceColor,
           cardColor: tenant.branding?.cardColor || defaultBrand.cardColor,

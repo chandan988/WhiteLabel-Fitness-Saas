@@ -1,3 +1,4 @@
+import { useState } from "react";
 import DashboardLayout from "./DashboardLayout.jsx";
 import MetricCard from "../../components/MetricCard.jsx";
 import ChartCard from "../../components/ChartCard.jsx";
@@ -9,6 +10,15 @@ import { useClients } from "../../hooks/useClients.js";
 const DashboardHome = () => {
   const { summary, steps, calories, weights, loading } = useDashboardData();
   const { clients } = useClients();
+  const [chartVariants, setChartVariants] = useState({
+    steps: "line",
+    calories: "line",
+    weight: "line"
+  });
+
+  const updateVariant = (key, next) => {
+    setChartVariants((prev) => ({ ...prev, [key]: next }));
+  };
 
   const metrics = [
     {
@@ -51,9 +61,30 @@ const DashboardHome = () => {
         ))}
       </div>
       <div className="grid grid-cols-3 gap-5 mt-8">
-        <ChartCard title="Weekly Steps" data={steps} color="#22c55e" />
-        <ChartCard title="Weekly Calories" data={calories} color="#0ea5e9" />
-        <ChartCard title="Weight Trend" data={weights} color="#f97316" />
+        <ChartCard
+          title="Weekly Steps"
+          data={steps}
+          color="#fb923c"
+          showToggle
+          variant={chartVariants.steps}
+          onVariantChange={(next) => updateVariant("steps", next)}
+        />
+        <ChartCard
+          title="Weekly Calories"
+          data={calories}
+          color="#fb923c"
+          showToggle
+          variant={chartVariants.calories}
+          onVariantChange={(next) => updateVariant("calories", next)}
+        />
+        <ChartCard
+          title="Weight Trend"
+          data={weights}
+          color="#fb923c"
+          showToggle
+          variant={chartVariants.weight}
+          onVariantChange={(next) => updateVariant("weight", next)}
+        />
       </div>
       <div className="grid grid-cols-2 gap-5 mt-8">
         <ActivitiesList

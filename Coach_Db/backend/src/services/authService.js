@@ -69,6 +69,7 @@ export const registerUser = async ({
         secondaryColor: "#38bdf8",
         primaryHoverColor: "#0b7f71",
         secondaryHoverColor: "#0b4f4c",
+        sidebarColor: "#115e59",
         surfaceColor: "#f8fafc",
         cardColor: "#ffffff",
         textColor: "#0f172a",

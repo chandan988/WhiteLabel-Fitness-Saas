@@ -7,9 +7,10 @@ export default {
         brand: {
           primary: "var(--brand-primary, #0d9488)",
           secondary: "var(--brand-secondary, #115e59)",
-          primaryHover: "var(--brand-primary-hover, #0b7f71)",
-          secondaryHover: "var(--brand-secondary-hover, #0b4f4c)",
-          surface: "var(--brand-surface, #f8fafc)",
+        primaryHover: "var(--brand-primary-hover, #0b7f71)",
+        secondaryHover: "var(--brand-secondary-hover, #0b4f4c)",
+        sidebar: "var(--brand-sidebar, #115e59)",
+        surface: "var(--brand-surface, #f8fafc)",
           card: "var(--brand-card, #ffffff)",
           ink: "var(--brand-ink, #0f172a)",
           muted: "var(--brand-muted, #64748b)",

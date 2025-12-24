@@ -8,6 +8,7 @@ const BrandingSchema = new mongoose.Schema(
     secondaryColor: { type: String, default: "#38bdf8" },
     primaryHoverColor: { type: String, default: "#0b7f71" },
     secondaryHoverColor: { type: String, default: "#0b4f4c" },
+    sidebarColor: { type: String, default: "#115e59" },
     surfaceColor: { type: String, default: "#f8fafc" },
     cardColor: { type: String, default: "#ffffff" },
     textColor: { type: String, default: "#0f172a" },

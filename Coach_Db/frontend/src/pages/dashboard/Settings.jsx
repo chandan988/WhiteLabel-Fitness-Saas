@@ -17,6 +17,7 @@ const DEFAULT_BRANDING = {
   secondaryColor: "#115e59",
   primaryHoverColor: "#0b7f71",
   secondaryHoverColor: "#0b4f4c",
+  sidebarColor: "#115e59",
   surfaceColor: "#f8fafc",
   cardColor: "#ffffff",
   textColor: "#0f172a",
@@ -73,6 +74,7 @@ const Settings = () => {
         branding.primaryHoverColor || DEFAULT_BRANDING.primaryHoverColor,
       secondaryHoverColor:
         branding.secondaryHoverColor || DEFAULT_BRANDING.secondaryHoverColor,
+      sidebarColor: branding.sidebarColor || DEFAULT_BRANDING.sidebarColor,
       surfaceColor: branding.surfaceColor || DEFAULT_BRANDING.surfaceColor,
       cardColor: branding.cardColor || DEFAULT_BRANDING.cardColor,
       textColor: branding.textColor || DEFAULT_BRANDING.textColor,
@@ -100,6 +102,7 @@ const Settings = () => {
           secondaryColor: resetValues.secondaryColor,
           primaryHoverColor: resetValues.primaryHoverColor,
           secondaryHoverColor: resetValues.secondaryHoverColor,
+          sidebarColor: resetValues.sidebarColor,
           surfaceColor: resetValues.surfaceColor,
           cardColor: resetValues.cardColor,
           textColor: resetValues.textColor,
@@ -154,6 +157,7 @@ const Settings = () => {
           secondaryColor: brandingForm.secondaryColor,
           primaryHoverColor: brandingForm.primaryHoverColor,
           secondaryHoverColor: brandingForm.secondaryHoverColor,
+          sidebarColor: brandingForm.sidebarColor,
           surfaceColor: brandingForm.surfaceColor,
           cardColor: brandingForm.cardColor,
           textColor: brandingForm.textColor,
@@ -387,6 +391,27 @@ const Settings = () => {
                 />
                 <span className="text-sm text-brand-muted">
                   {brandingForm.secondaryHoverColor}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-brand-ink">
+                Sidebar background
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={brandingForm.sidebarColor}
+                  onChange={(e) =>
+                    setBrandingForm((prev) => ({
+                      ...prev,
+                      sidebarColor: e.target.value
+                    }))
+                  }
+                  className="h-10 w-14 rounded-lg border border-brand-border"
+                />
+                <span className="text-sm text-brand-muted">
+                  {brandingForm.sidebarColor}
                 </span>
               </div>
             </div>
