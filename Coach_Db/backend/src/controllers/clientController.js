@@ -7,7 +7,8 @@ import {
 import {
   assignMealToClient,
   assignWorkoutToClient,
-  getClientHealth
+  getClientHealth,
+  updateWorkoutStatus
 } from "../services/clientHealthService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { logger } from "../utils/logger.js";
@@ -75,6 +76,16 @@ export const assignMealController = asyncHandler(async (req, res) => {
     tenantId: req.user.tenantId,
     foodId: req.body.foodId,
     notes: req.body.notes
+  });
+  res.json(client);
+});
+
+export const updateWorkoutStatusController = asyncHandler(async (req, res) => {
+  logger.info("Updating workout status", { clientId: req.params.id });
+  const client = await updateWorkoutStatus({
+    clientId: req.params.id,
+    tenantId: req.user.tenantId,
+    status: req.body.status
   });
   res.json(client);
 });

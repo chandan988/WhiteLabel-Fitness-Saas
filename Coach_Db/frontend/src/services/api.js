@@ -50,6 +50,8 @@ export const assignClientWorkout = (id, payload) =>
   api.post(`/clients/${id}/assign-workout`, payload);
 export const assignClientMeal = (id, payload) =>
   api.post(`/clients/${id}/assign-meal`, payload);
+export const updateClientWorkoutStatus = (id, payload) =>
+  api.post(`/clients/${id}/workout-status`, payload);
 export const updateTenant = (id, payload) => api.patch(`/tenants/${id}`, payload);
 export const getLeads = (params = {}) => api.get("/leads", { params });
 export const getLeadById = (id) => api.get(`/leads/${id}`);

@@ -169,10 +169,40 @@ export const assignWorkoutToClient = async ({
       toNumber(workout.typicalRepsPerMin) ||
       client.workoutPlan?.duration,
     notes: notes || client.workoutPlan?.notes,
+    status: "assigned",
+    completedAt: null,
     items: [planItem],
     assignedAt: new Date()
   };
 
+  await client.save();
+  return client;
+};
+
+export const updateWorkoutStatus = async ({
+  clientId,
+  tenantId,
+  status
+}) => {
+  logger.info("clientHealthService.updateWorkoutStatus", {
+    clientId,
+    tenantId,
+    status
+  });
+  const client = await Client.findById(clientId);
+  if (!client) {
+    throw new Error("Client not found");
+  }
+  if (`${client.tenantId}` !== `${tenantId}`) {
+    throw new Error("You cannot update this client");
+  }
+  if (!client.workoutPlan?.name) {
+    throw new Error("No workout plan assigned");
+  }
+  const normalized = status === "completed" ? "completed" : "assigned";
+  client.workoutPlan.status = normalized;
+  client.workoutPlan.completedAt =
+    normalized === "completed" ? new Date() : null;
   await client.save();
   return client;
 };

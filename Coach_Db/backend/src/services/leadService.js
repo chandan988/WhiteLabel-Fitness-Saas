@@ -227,7 +227,7 @@ export const convertLead = async ({ leadId, tenantId, userId }) => {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: lead.email,
-      phone: lead.phone || "Not provided",
+      phone: lead.phone || "",
       userId: lead._id,
       tenantId,
       createdBy: userId

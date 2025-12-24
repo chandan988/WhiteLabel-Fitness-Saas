@@ -5,7 +5,8 @@ import {
   getClient,
   getClientHealth,
   searchFoodLibrary,
-  searchWorkoutLibrary
+  searchWorkoutLibrary,
+  updateClientWorkoutStatus
 } from "../services/api.js";
 
 export const useClientDetail = (clientId) => {
@@ -61,6 +62,17 @@ export const useClientDetail = (clientId) => {
     }
   };
 
+  const updateWorkoutStatus = async (payload) => {
+    setAssigning(true);
+    try {
+      const { data } = await updateClientWorkoutStatus(clientId, payload);
+      setClient(data);
+      return data;
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   const searchWorkouts = async (params) => {
     setLibraryLoading(true);
     try {
@@ -91,6 +103,7 @@ export const useClientDetail = (clientId) => {
     fetchClient,
     assignWorkout,
     assignMeal,
+    updateWorkoutStatus,
     searchWorkouts,
     searchFoods
   };

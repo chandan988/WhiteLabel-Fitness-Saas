@@ -31,6 +31,12 @@ const ClientSchema = new mongoose.Schema(
       name: String,
       duration: Number,
       notes: String,
+      status: {
+        type: String,
+        enum: ["assigned", "completed"],
+        default: "assigned"
+      },
+      completedAt: { type: Date },
       exercises: [
         {
           name: String,

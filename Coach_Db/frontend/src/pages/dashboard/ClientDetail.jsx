@@ -97,6 +97,7 @@ const ClientDetail = () => {
     libraryLoading,
     assignMeal,
     assignWorkout,
+    updateWorkoutStatus,
     searchFoods,
     searchWorkouts
   } = useClientDetail(id);
@@ -309,6 +310,17 @@ const ClientDetail = () => {
       await assignMeal({ foodId: food.id, notes: mealNotes });
     } catch (err) {
       setActionError(err.response?.data?.message || "Failed to assign meal");
+    }
+  };
+
+  const handleWorkoutCompletion = async () => {
+    setActionError("");
+    try {
+      await updateWorkoutStatus({ status: "completed" });
+    } catch (err) {
+      setActionError(
+        err.response?.data?.message || "Failed to update workout status"
+      );
     }
   };
 
@@ -706,9 +718,37 @@ const ClientDetail = () => {
                 </p>
                 <p>{client.workoutPlan.duration || "-"} mins</p>
                 <p>{client.workoutPlan.notes || "No notes yet."}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase text-brand-muted">
+                    Status
+                  </span>
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      client.workoutPlan.status === "completed"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {client.workoutPlan.status || "assigned"}
+                  </span>
+                </div>
+                {client.workoutPlan.completedAt && (
+                  <p className="text-xs text-brand-muted">
+                    Completed {formatDateTime(client.workoutPlan.completedAt)}
+                  </p>
+                )}
                 <p className="text-xs text-brand-muted">
                   Updated {formatDateTime(client.workoutPlan.assignedAt)}
                 </p>
+                {client.workoutPlan.status !== "completed" && (
+                  <PrimaryButton
+                    className="w-auto px-4 mt-2"
+                    onClick={handleWorkoutCompletion}
+                    disabled={assigning}
+                  >
+                    Mark as Completed
+                  </PrimaryButton>
+                )}
               </div>
             ) : (
               <p className="text-sm text-brand-muted">
