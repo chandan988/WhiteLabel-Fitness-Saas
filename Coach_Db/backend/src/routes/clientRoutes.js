@@ -7,7 +7,8 @@ import {
   getClientController,
   listClientsController,
   updateClientController,
-  updateWorkoutStatusController
+  updateWorkoutStatusController,
+  updateMealStatusController
 } from "../controllers/clientController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
@@ -63,6 +64,13 @@ router.post(
   authenticate,
   authorizeRoles("coach", "superadmin"),
   updateWorkoutStatusController
+);
+
+router.post(
+  "/:id/meal-status",
+  authenticate,
+  authorizeRoles("coach", "superadmin"),
+  updateMealStatusController
 );
 
 router.patch(

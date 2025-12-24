@@ -246,10 +246,35 @@ export const assignMealToClient = async ({
     name: food.food_name,
     calories: `${toNumber(food.energy_kcal) || ""}`,
     notes: notes || client.mealPlan?.notes,
+    status: "assigned",
+    completedAt: null,
     items: [planItem],
     assignedAt: new Date()
   };
 
+  await client.save();
+  return client;
+};
+
+export const updateMealStatus = async ({ clientId, tenantId, status }) => {
+  logger.info("clientHealthService.updateMealStatus", {
+    clientId,
+    tenantId,
+    status
+  });
+  const client = await Client.findById(clientId);
+  if (!client) {
+    throw new Error("Client not found");
+  }
+  if (`${client.tenantId}` !== `${tenantId}`) {
+    throw new Error("You cannot update this client");
+  }
+  if (!client.mealPlan?.name) {
+    throw new Error("No meal plan assigned");
+  }
+  const normalized = status === "completed" ? "completed" : "assigned";
+  client.mealPlan.status = normalized;
+  client.mealPlan.completedAt = normalized === "completed" ? new Date() : null;
   await client.save();
   return client;
 };

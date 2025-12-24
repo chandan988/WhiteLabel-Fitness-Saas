@@ -1,4 +1,4 @@
-import { BellIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -41,7 +41,7 @@ const statusClass = (status) => {
   }
 };
 
-const TopBar = () => {
+const TopBar = ({ onToggleSidebar }) => {
   const { user } = useAuth();
   const { branding } = useBranding();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -78,11 +78,20 @@ const TopBar = () => {
 
   return (
     <header className="flex items-center justify-between py-6">
-      <div>
-        <p className="text-sm text-brand-muted">Dashboard</p>
-        <h2 className="text-2xl font-semibold text-brand-ink">
-          Welcome back, {user?.firstName || "Coach"}
-        </h2>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="p-2 rounded-xl bg-brand-card shadow"
+          onClick={onToggleSidebar}
+        >
+          <Bars3Icon className="h-5 w-5 text-brand-ink" />
+        </button>
+        <div>
+          <p className="text-sm text-brand-muted">Dashboard</p>
+          <h2 className="text-2xl font-semibold text-brand-ink">
+            Welcome back, {user?.firstName || "Coach"}
+          </h2>
+        </div>
       </div>
       <div className="flex items-center gap-6">
         <img

@@ -98,6 +98,7 @@ const ClientDetail = () => {
     assignMeal,
     assignWorkout,
     updateWorkoutStatus,
+    updateMealStatus,
     searchFoods,
     searchWorkouts
   } = useClientDetail(id);
@@ -320,6 +321,17 @@ const ClientDetail = () => {
     } catch (err) {
       setActionError(
         err.response?.data?.message || "Failed to update workout status"
+      );
+    }
+  };
+
+  const handleMealCompletion = async () => {
+    setActionError("");
+    try {
+      await updateMealStatus({ status: "completed" });
+    } catch (err) {
+      setActionError(
+        err.response?.data?.message || "Failed to update meal status"
       );
     }
   };
@@ -696,9 +708,37 @@ const ClientDetail = () => {
                 </p>
                 <p>{client.mealPlan.calories || "-"} kcal</p>
                 <p>{client.mealPlan.notes || "No notes yet."}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase text-brand-muted">
+                    Status
+                  </span>
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      client.mealPlan.status === "completed"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {client.mealPlan.status || "assigned"}
+                  </span>
+                </div>
+                {client.mealPlan.completedAt && (
+                  <p className="text-xs text-brand-muted">
+                    Completed {formatDateTime(client.mealPlan.completedAt)}
+                  </p>
+                )}
                 <p className="text-xs text-brand-muted">
                   Updated {formatDateTime(client.mealPlan.assignedAt)}
                 </p>
+                {client.mealPlan.status !== "completed" && (
+                  <PrimaryButton
+                    className="w-auto px-4 mt-2"
+                    onClick={handleMealCompletion}
+                    disabled={assigning}
+                  >
+                    Mark as Eaten
+                  </PrimaryButton>
+                )}
               </div>
             ) : (
               <p className="text-sm text-brand-muted">

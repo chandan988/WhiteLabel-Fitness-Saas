@@ -13,6 +13,12 @@ const ClientSchema = new mongoose.Schema(
       name: String,
       calories: String,
       notes: String,
+      status: {
+        type: String,
+        enum: ["assigned", "completed"],
+        default: "assigned"
+      },
+      completedAt: { type: Date },
       items: [
         {
           foodId: String,
