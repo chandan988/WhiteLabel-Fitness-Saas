@@ -70,7 +70,7 @@ export const getClientHealth = async ({ clientId, tenantId, limit }) => {
     };
   }
 
-  const take = Number.isFinite(Number(limit)) ? Math.min(Number(limit), 30) : 12;
+  const take = Number.isFinite(Number(limit)) ? Math.min(Number(limit), 60) : 45;
 
   const [workouts, foods, sleeps, steps, waters, weights] = await Promise.all([
     DailyWorkout.find({ userId })

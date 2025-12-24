@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import DashboardLayout from "./DashboardLayout.jsx";
 import PrimaryButton from "../../components/PrimaryButton.jsx";
 import TextInput from "../../components/TextInput.jsx";
+import ChartCard from "../../components/ChartCard.jsx";
 import { useClientDetail } from "../../hooks/useClientDetail.js";
 
 const formatDate = (value) => {
@@ -17,6 +18,69 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString();
+};
+
+const toDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const average = (values) => {
+  if (!values.length) return 0;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return total / values.length;
+};
+
+const getDayKey = (date) => date.toISOString().slice(0, 10);
+
+const buildSeries = (entries, getDate, getValue, aggregate = "sum") => {
+  const map = new Map();
+  entries.forEach((entry) => {
+    const date = getDate(entry);
+    if (!date) return;
+    const key = getDayKey(date);
+    const value = Number(getValue(entry)) || 0;
+    if (!map.has(key)) {
+      map.set(key, value);
+      return;
+    }
+    if (aggregate === "sum") {
+      map.set(key, map.get(key) + value);
+    } else {
+      map.set(key, value);
+    }
+  });
+  return Array.from(map.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, value]) => ({
+      label: new Date(key).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+      }),
+      value: Math.round(value * 10) / 10
+    }));
+};
+
+const ProgressBar = ({ label, current, target, unit }) => {
+  const percent = target ? Math.min((current / target) * 100, 100) : 0;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-brand-muted">{label}</span>
+        <span className="text-brand-ink font-semibold">
+          {Math.round(current)} {unit} / {target} {unit}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-brand-secondary/15 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-brand-primary"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
 };
 
 const ClientDetail = () => {
@@ -34,6 +98,7 @@ const ClientDetail = () => {
     searchWorkouts
   } = useClientDetail(id);
 
+  const [period, setPeriod] = useState("week");
   const [workoutQuery, setWorkoutQuery] = useState("");
   const [workoutResults, setWorkoutResults] = useState([]);
   const [foodQuery, setFoodQuery] = useState("");
@@ -42,6 +107,108 @@ const ClientDetail = () => {
   const [workoutDuration, setWorkoutDuration] = useState("");
   const [mealNotes, setMealNotes] = useState("");
   const [actionError, setActionError] = useState("");
+
+  const rangeDays = period === "month" ? 30 : 7;
+  const rangeStart = useMemo(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - (rangeDays - 1));
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }, [rangeDays]);
+
+  const workouts = health?.logs?.workouts || [];
+  const foods = health?.logs?.foods || [];
+  const sleeps = health?.logs?.sleeps || [];
+  const steps = health?.logs?.steps || [];
+  const waters = health?.logs?.waters || [];
+  const weights = health?.logs?.weights || [];
+
+  const filteredWorkouts = useMemo(
+    () =>
+      workouts.filter(
+        (entry) =>
+          (toDate(entry.dateObj || entry.date) || 0) >= rangeStart
+      ),
+    [workouts, rangeStart]
+  );
+  const filteredSteps = useMemo(
+    () => steps.filter((entry) => (toDate(entry.date) || 0) >= rangeStart),
+    [steps, rangeStart]
+  );
+  const filteredFoods = useMemo(
+    () =>
+      foods.filter(
+        (entry) => (toDate(entry.date || entry.createdAt) || 0) >= rangeStart
+      ),
+    [foods, rangeStart]
+  );
+  const filteredWeights = useMemo(
+    () => weights.filter((entry) => (toDate(entry.date) || 0) >= rangeStart),
+    [weights, rangeStart]
+  );
+  const filteredWaters = useMemo(
+    () => waters.filter((entry) => (toDate(entry.date) || 0) >= rangeStart),
+    [waters, rangeStart]
+  );
+  const filteredSleeps = useMemo(
+    () =>
+      sleeps.filter(
+        (entry) => (toDate(entry.date || entry.sleep_time) || 0) >= rangeStart
+      ),
+    [sleeps, rangeStart]
+  );
+
+  const stepsSeries = useMemo(
+    () =>
+      buildSeries(
+        filteredSteps,
+        (entry) => toDate(entry.date),
+        (entry) => entry.totalSteps || 0
+      ),
+    [filteredSteps]
+  );
+  const caloriesSeries = useMemo(
+    () =>
+      buildSeries(
+        filteredFoods,
+        (entry) => toDate(entry.date || entry.createdAt),
+        (entry) => entry.dailyTotals?.calories || 0
+      ),
+    [filteredFoods]
+  );
+  const weightSeries = useMemo(
+    () =>
+      buildSeries(
+        filteredWeights,
+        (entry) => toDate(entry.date),
+        (entry) => entry.weight || 0,
+        "last"
+      ),
+    [filteredWeights]
+  );
+  const waterSeries = useMemo(
+    () =>
+      buildSeries(
+        filteredWaters,
+        (entry) => toDate(entry.date),
+        (entry) => entry.amount || 0
+      ),
+    [filteredWaters]
+  );
+  const sleepSeries = useMemo(
+    () =>
+      buildSeries(
+        filteredSleeps,
+        (entry) => toDate(entry.date || entry.sleep_time),
+        (entry) => {
+          const start = toDate(entry.sleep_time);
+          const end = toDate(entry.wake_time);
+          if (!start || !end || end <= start) return 0;
+          return (end - start) / (1000 * 60 * 60);
+        }
+      ),
+    [filteredSleeps]
+  );
 
   const summaryCards = useMemo(() => {
     const summary = health?.summary || {};
@@ -74,6 +241,19 @@ const ClientDetail = () => {
       }
     ];
   }, [health]);
+
+  const benchmarks = useMemo(() => {
+    const avgSteps = average(stepsSeries.map((item) => item.value));
+    const avgCalories = average(caloriesSeries.map((item) => item.value));
+    const avgWater = average(waterSeries.map((item) => item.value));
+    const avgSleep = average(sleepSeries.map((item) => item.value));
+    return [
+      { label: "Steps Target", current: avgSteps, target: 10000, unit: "steps" },
+      { label: "Sleep Target", current: avgSleep, target: 8, unit: "hrs" },
+      { label: "Water Target", current: avgWater, target: 8, unit: "glasses" },
+      { label: "Calories Target", current: avgCalories, target: 2000, unit: "kcal" }
+    ];
+  }, [stepsSeries, caloriesSeries, waterSeries, sleepSeries]);
 
   const handleWorkoutSearch = async () => {
     setActionError("");
@@ -141,13 +321,6 @@ const ClientDetail = () => {
     );
   }
 
-  const workouts = health?.logs?.workouts || [];
-  const foods = health?.logs?.foods || [];
-  const sleeps = health?.logs?.sleeps || [];
-  const steps = health?.logs?.steps || [];
-  const waters = health?.logs?.waters || [];
-  const weights = health?.logs?.weights || [];
-
   return (
     <DashboardLayout>
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
@@ -158,6 +331,30 @@ const ClientDetail = () => {
           </h2>
           <p className="text-brand-muted">{client.email}</p>
           <p className="text-brand-muted">{client.phone || "No phone"}</p>
+        </div>
+        <div className="bg-brand-card rounded-2xl shadow-card p-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPeriod("week")}
+            className={`px-4 py-2 rounded-2xl text-sm font-semibold ${
+              period === "week"
+                ? "bg-brand-primary text-brand-buttonText"
+                : "text-brand-muted"
+            }`}
+          >
+            Last 7 Days
+          </button>
+          <button
+            type="button"
+            onClick={() => setPeriod("month")}
+            className={`px-4 py-2 rounded-2xl text-sm font-semibold ${
+              period === "month"
+                ? "bg-brand-primary text-brand-buttonText"
+                : "text-brand-muted"
+            }`}
+          >
+            Last 30 Days
+          </button>
         </div>
       </div>
 
@@ -175,15 +372,39 @@ const ClientDetail = () => {
         ))}
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <ChartCard
+          title="Steps Trend"
+          data={stepsSeries}
+          color="var(--brand-primary)"
+          xKey="label"
+          yKey="value"
+        />
+        <ChartCard
+          title="Calories Intake"
+          data={caloriesSeries}
+          color="var(--brand-secondary)"
+          xKey="label"
+          yKey="value"
+        />
+        <ChartCard
+          title="Weight Trend"
+          data={weightSeries}
+          color="#fb923c"
+          xKey="label"
+          yKey="value"
+        />
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6">
           <div className="bg-brand-card rounded-3xl shadow-card p-6">
             <h3 className="text-lg font-semibold text-brand-ink mb-4">
               Workout Activity
             </h3>
-            {workouts.length ? (
+            {filteredWorkouts.length ? (
               <div className="space-y-4 text-sm text-brand-muted">
-                {workouts.map((workout) => (
+                {filteredWorkouts.map((workout) => (
                   <div
                     key={workout._id}
                     className="border border-brand-border rounded-2xl p-4"
@@ -200,8 +421,8 @@ const ClientDetail = () => {
                       Calories:{" "}
                       {workout.dailyStats?.calories
                         ? Math.round(workout.dailyStats.calories)
-                        : "-"}
-                      {" kcal"}
+                        : "-"}{" "}
+                      kcal
                     </div>
                     <div className="mt-2 text-xs text-brand-muted">
                       {(workout.workouts || [])
@@ -224,9 +445,9 @@ const ClientDetail = () => {
             <h3 className="text-lg font-semibold text-brand-ink mb-4">
               Nutrition Logs
             </h3>
-            {foods.length ? (
+            {filteredFoods.length ? (
               <div className="space-y-4 text-sm text-brand-muted">
-                {foods.map((log) => (
+                {filteredFoods.map((log) => (
                   <div
                     key={log._id}
                     className="border border-brand-border rounded-2xl p-4"
@@ -242,8 +463,8 @@ const ClientDetail = () => {
                       </span>
                     </div>
                     <div className="mt-1 text-xs text-brand-muted">
-                      Protein: {log.dailyTotals?.protein ?? "-"}g · Carbs:{" "}
-                      {log.dailyTotals?.carbs ?? "-"}g · Fat:{" "}
+                      Protein: {log.dailyTotals?.protein ?? "-"}g - Carbs:{" "}
+                      {log.dailyTotals?.carbs ?? "-"}g - Fat:{" "}
                       {log.dailyTotals?.fat ?? "-"}g
                     </div>
                     <div className="mt-2 text-xs text-brand-muted">
@@ -267,15 +488,15 @@ const ClientDetail = () => {
               <h3 className="text-lg font-semibold text-brand-ink mb-4">
                 Sleep
               </h3>
-              {sleeps.length ? (
+              {filteredSleeps.length ? (
                 <div className="space-y-3 text-sm text-brand-muted">
-                  {sleeps.map((entry) => (
+                  {filteredSleeps.map((entry) => (
                     <div key={entry._id} className="flex flex-col gap-1">
                       <span className="text-brand-ink font-semibold">
                         {formatDate(entry.date || entry.sleep_time)}
                       </span>
                       <span>
-                        {formatDateTime(entry.sleep_time)} →{" "}
+                        {formatDateTime(entry.sleep_time)} to{" "}
                         {formatDateTime(entry.wake_time)}
                       </span>
                     </div>
@@ -291,15 +512,15 @@ const ClientDetail = () => {
               <h3 className="text-lg font-semibold text-brand-ink mb-4">
                 Steps
               </h3>
-              {steps.length ? (
+              {filteredSteps.length ? (
                 <div className="space-y-3 text-sm text-brand-muted">
-                  {steps.map((entry) => (
+                  {filteredSteps.map((entry) => (
                     <div key={entry._id} className="flex justify-between">
                       <span className="text-brand-ink font-semibold">
                         {formatDate(entry.date)}
                       </span>
                       <span>
-                        {entry.totalSteps || 0} steps ·{" "}
+                        {entry.totalSteps || 0} steps -{" "}
                         {entry.distanceMeters
                           ? `${Math.round(entry.distanceMeters)} m`
                           : "-"}
@@ -317,9 +538,9 @@ const ClientDetail = () => {
               <h3 className="text-lg font-semibold text-brand-ink mb-4">
                 Water Intake
               </h3>
-              {waters.length ? (
+              {filteredWaters.length ? (
                 <div className="space-y-3 text-sm text-brand-muted">
-                  {waters.map((entry) => (
+                  {filteredWaters.map((entry) => (
                     <div key={entry._id} className="flex justify-between">
                       <span className="text-brand-ink font-semibold">
                         {formatDate(entry.date)}
@@ -338,9 +559,9 @@ const ClientDetail = () => {
               <h3 className="text-lg font-semibold text-brand-ink mb-4">
                 Weight Tracking
               </h3>
-              {weights.length ? (
+              {filteredWeights.length ? (
                 <div className="space-y-3 text-sm text-brand-muted">
-                  {weights.map((entry) => (
+                  {filteredWeights.map((entry) => (
                     <div
                       key={entry._id}
                       className="flex items-center justify-between gap-3"
@@ -373,6 +594,19 @@ const ClientDetail = () => {
         </div>
 
         <div className="space-y-6">
+          <div className="bg-brand-card rounded-3xl shadow-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-brand-ink">Benchmarks</h3>
+            {benchmarks.map((item) => (
+              <ProgressBar
+                key={item.label}
+                label={item.label}
+                current={item.current}
+                target={item.target}
+                unit={item.unit}
+              />
+            ))}
+          </div>
+
           <div className="bg-brand-card rounded-3xl shadow-card p-6">
             <h3 className="text-lg font-semibold text-brand-ink mb-3">
               Assigned Meal Plan
@@ -461,7 +695,7 @@ const ClientDetail = () => {
                         {workout.workoutName}
                       </p>
                       <p className="text-xs text-brand-muted">
-                        {workout.category || "Workout"} ·{" "}
+                        {workout.category || "Workout"} -{" "}
                         {workout.caloriesPerMin || "-"} cal/min
                       </p>
                     </div>
@@ -504,7 +738,7 @@ const ClientDetail = () => {
                 label="Notes"
                 value={mealNotes}
                 onChange={(event) => setMealNotes(event.target.value)}
-                placeholder="e.g. post-workout meal"
+                placeholder="Example: post-workout meal"
               />
               <div className="mt-4 space-y-2 text-sm text-brand-muted">
                 {foodResults.map((food) => (
@@ -527,7 +761,7 @@ const ClientDetail = () => {
                           {food.foodName}
                         </p>
                         <p className="text-xs text-brand-muted">
-                          {Math.round(food.energyKcal || 0)} kcal ·{" "}
+                          {Math.round(food.energyKcal || 0)} kcal -{" "}
                           {food.servingsUnit || "serving"}
                         </p>
                       </div>

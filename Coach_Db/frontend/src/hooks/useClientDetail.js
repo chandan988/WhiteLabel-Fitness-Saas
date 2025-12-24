@@ -22,7 +22,7 @@ export const useClientDetail = (clientId) => {
     try {
       const [clientRes, healthRes] = await Promise.all([
         getClient(clientId),
-        getClientHealth(clientId)
+        getClientHealth(clientId, { limit: 60 })
       ]);
       setClient(clientRes.data);
       setHealth(healthRes.data);
