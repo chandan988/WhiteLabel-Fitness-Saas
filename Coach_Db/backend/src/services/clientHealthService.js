@@ -11,6 +11,36 @@ import { FoodApi } from "../models/FoodApi.js";
 import { logger } from "../utils/logger.js";
 
 const toNumber = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
+const getObjectIdDate = (value) => {
+  if (!value) return null;
+  const hex = value.toString().slice(0, 8);
+  if (hex.length < 8) return null;
+  const seconds = parseInt(hex, 16);
+  if (Number.isNaN(seconds)) return null;
+  return new Date(seconds * 1000);
+};
+
+const normalizeAssignedAt = (item) => {
+  const createdAt = getObjectIdDate(item._id);
+  if (!item.assignedAt && createdAt) {
+    item.assignedAt = createdAt;
+    return;
+  }
+  if (createdAt && item.assignedAt) {
+    const assignedTime = new Date(item.assignedAt).getTime();
+    const createdTime = createdAt.getTime();
+    if (assignedTime - createdTime > 1000 * 60 * 60) {
+      item.assignedAt = createdAt;
+    }
+  }
+  if (item.completedAt && item.assignedAt) {
+    const completedTime = new Date(item.completedAt).getTime();
+    const assignedTime = new Date(item.assignedAt).getTime();
+    if (assignedTime > completedTime) {
+      item.assignedAt = item.completedAt;
+    }
+  }
+};
 
 const getUserIdForClient = async (client) => {
   if (client.userId) {
@@ -132,6 +162,7 @@ export const assignWorkoutToClient = async ({
   clientId,
   tenantId,
   workoutId,
+  workoutIds,
   notes,
   duration
 }) => {
@@ -148,30 +179,59 @@ export const assignWorkoutToClient = async ({
     throw new Error("You cannot update this client");
   }
 
-  const workout = await WorkoutApi.findById(workoutId).lean();
-  if (!workout) {
+  const ids = Array.isArray(workoutIds)
+    ? workoutIds
+    : workoutId
+      ? [workoutId]
+      : [];
+  if (!ids.length) {
+    throw new Error("Workout selection is required");
+  }
+
+  const workouts = await WorkoutApi.find({ _id: { $in: ids } }).lean();
+  if (!workouts.length) {
     throw new Error("Workout not found");
   }
 
-  const planItem = {
+  const planItems = workouts.map((workout) => ({
     workoutId: workout._id?.toString(),
     workoutName: workout.workoutName,
     category: workout.category,
     unit: workout.unit,
     caloriesPerMin: toNumber(workout.caloriesPerMin),
-    caloriesPerRep: toNumber(workout.caloriesPerRep)
-  };
+    caloriesPerRep: toNumber(workout.caloriesPerRep),
+    assignedAt: new Date(),
+    status: "assigned",
+    completedAt: null
+  }));
+
+  const uniqueItemsMap = new Map(
+    (client.workoutPlan?.items || []).map((item) => {
+      normalizeAssignedAt(item);
+      return [item.workoutId, item];
+    })
+  );
+  planItems.forEach((item) => {
+    if (!uniqueItemsMap.has(item.workoutId)) {
+      uniqueItemsMap.set(item.workoutId, item);
+    }
+  });
+  const uniqueItems = Array.from(uniqueItemsMap.values());
 
   client.workoutPlan = {
-    name: workout.workoutName,
+    name:
+      uniqueItems.length > 1
+        ? "Custom Plan"
+        : uniqueItems[0]?.workoutName || client.workoutPlan?.name,
     duration:
       toNumber(duration) ||
-      toNumber(workout.typicalRepsPerMin) ||
+      toNumber(workouts[0]?.typicalRepsPerMin) ||
       client.workoutPlan?.duration,
     notes: notes || client.workoutPlan?.notes,
     status: "assigned",
     completedAt: null,
-    items: [planItem],
+    exercises: client.workoutPlan?.exercises || [],
+    items: uniqueItems,
     assignedAt: new Date()
   };
 
@@ -182,7 +242,8 @@ export const assignWorkoutToClient = async ({
 export const updateWorkoutStatus = async ({
   clientId,
   tenantId,
-  status
+  status,
+  itemId
 }) => {
   logger.info("clientHealthService.updateWorkoutStatus", {
     clientId,
@@ -200,9 +261,25 @@ export const updateWorkoutStatus = async ({
     throw new Error("No workout plan assigned");
   }
   const normalized = status === "completed" ? "completed" : "assigned";
-  client.workoutPlan.status = normalized;
-  client.workoutPlan.completedAt =
-    normalized === "completed" ? new Date() : null;
+  if (itemId) {
+    const item = client.workoutPlan.items?.find(
+      (entry) => `${entry.workoutId}` === `${itemId}`
+    );
+    if (!item) {
+      throw new Error("Workout item not found");
+    }
+    item.status = normalized;
+    item.completedAt = normalized === "completed" ? new Date() : null;
+    const allCompleted = client.workoutPlan.items?.every(
+      (entry) => entry.status === "completed"
+    );
+    client.workoutPlan.status = allCompleted ? "completed" : "assigned";
+    client.workoutPlan.completedAt = allCompleted ? new Date() : null;
+  } else {
+    client.workoutPlan.status = normalized;
+    client.workoutPlan.completedAt =
+      normalized === "completed" ? new Date() : null;
+  }
   await client.save();
   return client;
 };
@@ -211,6 +288,8 @@ export const assignMealToClient = async ({
   clientId,
   tenantId,
   foodId,
+  foodIds,
+  mealType,
   notes
 }) => {
   logger.info("clientHealthService.assignMealToClient", {
@@ -226,29 +305,65 @@ export const assignMealToClient = async ({
     throw new Error("You cannot update this client");
   }
 
-  const food = await FoodApi.findById(foodId).lean();
-  if (!food) {
+  const ids = Array.isArray(foodIds) ? foodIds : foodId ? [foodId] : [];
+  if (!ids.length) {
+    throw new Error("Food selection is required");
+  }
+
+  const foods = await FoodApi.find({ _id: { $in: ids } }).lean();
+  if (!foods.length) {
     throw new Error("Food item not found");
   }
 
-  const planItem = {
+  const normalizedMealType = (mealType || "other").toLowerCase();
+  const safeMealType = ["breakfast", "lunch", "dinner", "snacks"].includes(
+    normalizedMealType
+  )
+    ? normalizedMealType
+    : "other";
+
+  const planItems = foods.map((food) => ({
     foodId: food._id?.toString(),
     foodName: food.food_name,
+    mealType: safeMealType,
     energyKcal: toNumber(food.energy_kcal),
     carbs: toNumber(food.carb_g),
     protein: toNumber(food.protein_g),
     fat: toNumber(food.fat_g),
     servingsUnit: food.servings_unit,
-    imageUrl: food.food_image
-  };
+    imageUrl: food.food_image,
+    assignedAt: new Date(),
+    status: "assigned",
+    completedAt: null
+  }));
+
+  const uniqueItemsMap = new Map(
+    (client.mealPlan?.items || []).map((item) => {
+      normalizeAssignedAt(item);
+      return [item.foodId, item];
+    })
+  );
+  planItems.forEach((item) => {
+    if (!uniqueItemsMap.has(item.foodId)) {
+      uniqueItemsMap.set(item.foodId, item);
+    }
+  });
+  const uniqueItems = Array.from(uniqueItemsMap.values());
+  const totalCalories = uniqueItems.reduce(
+    (sum, item) => sum + (Number(item.energyKcal) || 0),
+    0
+  );
 
   client.mealPlan = {
-    name: food.food_name,
-    calories: `${toNumber(food.energy_kcal) || ""}`,
+    name:
+      uniqueItems.length > 1
+        ? "Custom Plan"
+        : uniqueItems[0]?.foodName || client.mealPlan?.name,
+    calories: totalCalories ? `${Math.round(totalCalories)}` : "",
     notes: notes || client.mealPlan?.notes,
     status: "assigned",
     completedAt: null,
-    items: [planItem],
+    items: uniqueItems,
     assignedAt: new Date()
   };
 
@@ -256,7 +371,12 @@ export const assignMealToClient = async ({
   return client;
 };
 
-export const updateMealStatus = async ({ clientId, tenantId, status }) => {
+export const updateMealStatus = async ({
+  clientId,
+  tenantId,
+  status,
+  itemId
+}) => {
   logger.info("clientHealthService.updateMealStatus", {
     clientId,
     tenantId,
@@ -273,8 +393,24 @@ export const updateMealStatus = async ({ clientId, tenantId, status }) => {
     throw new Error("No meal plan assigned");
   }
   const normalized = status === "completed" ? "completed" : "assigned";
-  client.mealPlan.status = normalized;
-  client.mealPlan.completedAt = normalized === "completed" ? new Date() : null;
+  if (itemId) {
+    const item = client.mealPlan.items?.find(
+      (entry) => `${entry.foodId}` === `${itemId}`
+    );
+    if (!item) {
+      throw new Error("Meal item not found");
+    }
+    item.status = normalized;
+    item.completedAt = normalized === "completed" ? new Date() : null;
+    const allCompleted = client.mealPlan.items?.every(
+      (entry) => entry.status === "completed"
+    );
+    client.mealPlan.status = allCompleted ? "completed" : "assigned";
+    client.mealPlan.completedAt = allCompleted ? new Date() : null;
+  } else {
+    client.mealPlan.status = normalized;
+    client.mealPlan.completedAt = normalized === "completed" ? new Date() : null;
+  }
   await client.save();
   return client;
 };

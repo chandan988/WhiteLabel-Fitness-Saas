@@ -76,6 +76,8 @@ export const assignMealController = asyncHandler(async (req, res) => {
     clientId: req.params.id,
     tenantId: req.user.tenantId,
     foodId: req.body.foodId,
+    foodIds: req.body.foodIds,
+    mealType: req.body.mealType,
     notes: req.body.notes
   });
   res.json(client);
@@ -86,7 +88,8 @@ export const updateWorkoutStatusController = asyncHandler(async (req, res) => {
   const client = await updateWorkoutStatus({
     clientId: req.params.id,
     tenantId: req.user.tenantId,
-    status: req.body.status
+    status: req.body.status,
+    itemId: req.body.itemId
   });
   res.json(client);
 });
@@ -96,7 +99,8 @@ export const updateMealStatusController = asyncHandler(async (req, res) => {
   const client = await updateMealStatus({
     clientId: req.params.id,
     tenantId: req.user.tenantId,
-    status: req.body.status
+    status: req.body.status,
+    itemId: req.body.itemId
   });
   res.json(client);
 });

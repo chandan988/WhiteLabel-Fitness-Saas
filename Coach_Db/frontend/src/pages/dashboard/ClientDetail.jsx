@@ -23,6 +23,62 @@ const formatDateTime = (value) => {
   return date.toLocaleString();
 };
 
+const formatShortDate = (value) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+};
+
+const loadWatermarkDataUrl = (src, alpha = 0.06) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const maxSize = 600;
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const r = imageData.data[i];
+        const g = imageData.data[i + 1];
+        const b = imageData.data[i + 2];
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        imageData.data[i] = gray;
+        imageData.data[i + 1] = gray;
+        imageData.data[i + 2] = gray;
+        imageData.data[i + 3] = Math.round(imageData.data[i + 3] * alpha);
+      }
+      ctx.putImageData(imageData, 0, 0);
+      resolve({ dataUrl: canvas.toDataURL("image/png"), width, height });
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+
+const getObjectIdDate = (value) => {
+  if (!value) return null;
+  const hex = value.toString().slice(0, 8);
+  if (hex.length < 8) return null;
+  const seconds = parseInt(hex, 16);
+  if (Number.isNaN(seconds)) return null;
+  return new Date(seconds * 1000);
+};
+
 const toDate = (value) => {
   if (!value) return null;
   const date = new Date(value);
@@ -64,6 +120,24 @@ const buildSeries = (entries, getDate, getValue, aggregate = "sum") => {
       }),
       value: Math.round(value * 10) / 10
     }));
+};
+
+const buildSeriesStats = (series = []) => {
+  const values = series.map((item) => Number(item.value) || 0);
+  if (!values.length) {
+    return { min: 0, max: 0, avg: 0, change: 0 };
+  }
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const avg = average(values);
+  const change = values[values.length - 1] - values[0];
+  return { min, max, avg, change };
+};
+
+const formatDelta = (value, unit = "") => {
+  const rounded = Math.round(value * 10) / 10;
+  const sign = rounded > 0 ? "+" : "";
+  return `${sign}${rounded}${unit}`;
 };
 
 const ProgressBar = ({ label, current, target, unit }) => {
@@ -114,8 +188,11 @@ const ClientDetail = () => {
   const [period, setPeriod] = useState("week");
   const [workoutQuery, setWorkoutQuery] = useState("");
   const [workoutResults, setWorkoutResults] = useState([]);
+  const [selectedWorkoutIds, setSelectedWorkoutIds] = useState([]);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState([]);
+  const [selectedFoodIds, setSelectedFoodIds] = useState([]);
+  const [mealType, setMealType] = useState("breakfast");
   const [workoutNotes, setWorkoutNotes] = useState("");
   const [workoutDuration, setWorkoutDuration] = useState("");
   const [mealNotes, setMealNotes] = useState("");
@@ -227,6 +304,18 @@ const ClientDetail = () => {
     [filteredSleeps]
   );
 
+  const stepsStats = useMemo(() => buildSeriesStats(stepsSeries), [stepsSeries]);
+  const caloriesStats = useMemo(
+    () => buildSeriesStats(caloriesSeries),
+    [caloriesSeries]
+  );
+  const weightStats = useMemo(
+    () => buildSeriesStats(weightSeries),
+    [weightSeries]
+  );
+  const waterStats = useMemo(() => buildSeriesStats(waterSeries), [waterSeries]);
+  const sleepStats = useMemo(() => buildSeriesStats(sleepSeries), [sleepSeries]);
+
   const summaryCards = useMemo(() => {
     const summary = health?.summary || {};
     return [
@@ -272,6 +361,21 @@ const ClientDetail = () => {
     ];
   }, [stepsSeries, caloriesSeries, waterSeries, sleepSeries]);
 
+  const benchmarkScore = useMemo(() => {
+    if (!benchmarks.length) return 0;
+    const score =
+      benchmarks.reduce((sum, item) => {
+        if (!item.target) return sum;
+        return sum + Math.min(item.current / item.target, 1);
+      }, 0) / benchmarks.length;
+    return Math.round(score * 10 * 10) / 10;
+  }, [benchmarks]);
+
+  const scorePercent = Math.min(Math.max(benchmarkScore / 10, 0), 1);
+  const scoreLabel = period === "month" ? "30 Day Score" : "Weekly Score";
+  const gaugeRadius = 48;
+  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
+
   const handleWorkoutSearch = async () => {
     setActionError("");
     try {
@@ -292,32 +396,56 @@ const ClientDetail = () => {
     }
   };
 
-  const handleAssignWorkout = async (workout) => {
+  const toggleWorkoutSelection = (workoutId) => {
+    setSelectedWorkoutIds((prev) =>
+      prev.includes(workoutId)
+        ? prev.filter((idValue) => idValue !== workoutId)
+        : [...prev, workoutId]
+    );
+  };
+
+  const toggleFoodSelection = (foodId) => {
+    setSelectedFoodIds((prev) =>
+      prev.includes(foodId)
+        ? prev.filter((idValue) => idValue !== foodId)
+        : [...prev, foodId]
+    );
+  };
+
+  const handleAssignWorkout = async (workoutId) => {
     setActionError("");
     try {
       await assignWorkout({
-        workoutId: workout.id,
+        workoutId,
+        workoutIds: workoutId ? undefined : selectedWorkoutIds,
         duration: workoutDuration,
         notes: workoutNotes
       });
+      setSelectedWorkoutIds([]);
     } catch (err) {
       setActionError(err.response?.data?.message || "Failed to assign workout");
     }
   };
 
-  const handleAssignMeal = async (food) => {
+  const handleAssignMeal = async (foodId) => {
     setActionError("");
     try {
-      await assignMeal({ foodId: food.id, notes: mealNotes });
+      await assignMeal({
+        foodId,
+        foodIds: foodId ? undefined : selectedFoodIds,
+        mealType,
+        notes: mealNotes
+      });
+      setSelectedFoodIds([]);
     } catch (err) {
       setActionError(err.response?.data?.message || "Failed to assign meal");
     }
   };
 
-  const handleWorkoutCompletion = async () => {
+  const handleWorkoutCompletion = async (itemId) => {
     setActionError("");
     try {
-      await updateWorkoutStatus({ status: "completed" });
+      await updateWorkoutStatus({ status: "completed", itemId });
     } catch (err) {
       setActionError(
         err.response?.data?.message || "Failed to update workout status"
@@ -325,10 +453,10 @@ const ClientDetail = () => {
     }
   };
 
-  const handleMealCompletion = async () => {
+  const handleMealCompletion = async (itemId) => {
     setActionError("");
     try {
-      await updateMealStatus({ status: "completed" });
+      await updateMealStatus({ status: "completed", itemId });
     } catch (err) {
       setActionError(
         err.response?.data?.message || "Failed to update meal status"
@@ -346,29 +474,97 @@ const ClientDetail = () => {
     const dateTag = new Date().toISOString().slice(0, 10);
     const node = reportRef.current;
     if (!node) return;
-    const canvas = await html2canvas(node, {
+    const header = node.querySelector("[data-report-header]");
+    const body = node.querySelector("[data-report-body]");
+    if (!header || !body) return;
+
+    const headerCanvas = await html2canvas(header, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff"
     });
-    const imgData = canvas.toDataURL("image/png");
+    const headerImg = headerCanvas.toDataURL("image/png");
+
+    let watermark = null;
+    try {
+      watermark = await loadWatermarkDataUrl(branding.logoUrl, 0.08);
+    } catch (err) {
+      watermark = null;
+    }
+
     const pdf = new jsPDF("p", "pt", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
+    const margin = 24;
+    const headerHeight = 90;
+    const availableHeight = pageHeight - headerHeight - margin * 2;
+    const imgWidth = pageWidth - margin * 2;
 
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    const addHeader = () => {
+      pdf.addImage(headerImg, "PNG", margin, 16, imgWidth, headerHeight - 24);
+    };
 
-    while (heightLeft > 0) {
-      position -= pageHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    const sections = Array.from(
+      body.querySelectorAll("[data-report-section]")
+    );
+
+    let cursorY = headerHeight + margin;
+    addHeader();
+
+    const addWatermark = () => {
+      if (!watermark?.dataUrl) return;
+      const watermarkWidth = pageWidth * 0.55;
+      const ratio = watermark.height / watermark.width || 1;
+      const watermarkHeight = watermarkWidth * ratio;
+      pdf.addImage(
+        watermark.dataUrl,
+        "PNG",
+        (pageWidth - watermarkWidth) / 2,
+        (pageHeight - watermarkHeight) / 2,
+        watermarkWidth,
+        watermarkHeight
+      );
+    };
+
+    for (const section of sections) {
+      const sectionCanvas = await html2canvas(section, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+      const sectionImg = sectionCanvas.toDataURL("image/png");
+      const baseHeight =
+        (sectionCanvas.height * imgWidth) / sectionCanvas.width;
+      let renderWidth = imgWidth;
+      let renderHeight = baseHeight;
+      let renderX = margin;
+
+      if (baseHeight > availableHeight) {
+        const scale = availableHeight / baseHeight;
+        renderWidth = imgWidth * scale;
+        renderHeight = baseHeight * scale;
+        renderX = margin + (imgWidth - renderWidth) / 2;
+      }
+
+      if (cursorY + renderHeight > pageHeight - margin) {
+        addWatermark();
+        pdf.addPage();
+        addHeader();
+        cursorY = headerHeight + margin;
+      }
+
+      pdf.addImage(
+        sectionImg,
+        "PNG",
+        renderX,
+        cursorY,
+        renderWidth,
+        renderHeight
+      );
+      cursorY += renderHeight + 16;
     }
+
+    addWatermark();
 
     pdf.save(`${safeName || "client"}-report-${dateTag}.pdf`);
   };
@@ -396,6 +592,36 @@ const ClientDetail = () => {
       </DashboardLayout>
     );
   }
+
+  const groupItemsByDate = (items, fallbackDate) => {
+    const groups = new Map();
+    items.forEach((item) => {
+      const assignedDate = item.assignedAt;
+      const createdDate = getObjectIdDate(item._id);
+      const completedDate = item.completedAt ? new Date(item.completedAt) : null;
+      let effectiveDate = assignedDate
+        ? new Date(assignedDate)
+        : createdDate || (fallbackDate ? new Date(fallbackDate) : null);
+
+      if (completedDate && effectiveDate && effectiveDate > completedDate) {
+        effectiveDate = completedDate;
+      }
+
+      if (createdDate && effectiveDate) {
+        const delta = effectiveDate.getTime() - createdDate.getTime();
+        if (delta > 1000 * 60 * 60) {
+          effectiveDate = createdDate;
+        }
+      }
+
+      const key = formatShortDate(effectiveDate || fallbackDate);
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key).push(item);
+    });
+    return Array.from(groups.entries());
+  };
 
   return (
     <DashboardLayout>
@@ -708,37 +934,65 @@ const ClientDetail = () => {
                 </p>
                 <p>{client.mealPlan.calories || "-"} kcal</p>
                 <p>{client.mealPlan.notes || "No notes yet."}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase text-brand-muted">
-                    Status
-                  </span>
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      client.mealPlan.status === "completed"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {client.mealPlan.status || "assigned"}
-                  </span>
-                </div>
-                {client.mealPlan.completedAt && (
-                  <p className="text-xs text-brand-muted">
-                    Completed {formatDateTime(client.mealPlan.completedAt)}
-                  </p>
-                )}
                 <p className="text-xs text-brand-muted">
                   Updated {formatDateTime(client.mealPlan.assignedAt)}
                 </p>
-                {client.mealPlan.status !== "completed" && (
-                  <PrimaryButton
-                    className="w-auto px-4 mt-2"
-                    onClick={handleMealCompletion}
-                    disabled={assigning}
-                  >
-                    Mark as Eaten
-                  </PrimaryButton>
-                )}
+                {client.mealPlan.items?.length ? (
+                  <div className="mt-3 space-y-4">
+                    {groupItemsByDate(
+                      client.mealPlan.items,
+                      client.mealPlan.assignedAt
+                    ).map(([date, items]) => (
+                      <div key={date} className="space-y-2">
+                        <p className="text-xs font-semibold text-brand-muted">
+                          {date}
+                        </p>
+                        {items.map((item) => (
+                          <div
+                            key={item.foodId}
+                            className="flex items-center justify-between border border-brand-border rounded-2xl px-3 py-2 text-xs"
+                          >
+                            <div>
+                              <p className="text-brand-ink font-semibold">
+                                {item.foodName || "Meal Item"}
+                              </p>
+                              <p className="text-brand-muted capitalize">
+                                {item.mealType || "other"}
+                              </p>
+                              <p className="text-brand-muted">
+                                {item.energyKcal
+                                  ? `${Math.round(item.energyKcal)} kcal`
+                                  : "-"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
+                                  item.status === "completed"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {item.status || "assigned"}
+                              </span>
+                              {item.status !== "completed" && (
+                                <PrimaryButton
+                                  className="w-auto px-3 py-2 text-xs"
+                                  onClick={() =>
+                                    handleMealCompletion(item.foodId)
+                                  }
+                                  disabled={assigning}
+                                >
+                                  Mark as Eaten
+                                </PrimaryButton>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-brand-muted">
@@ -758,37 +1012,60 @@ const ClientDetail = () => {
                 </p>
                 <p>{client.workoutPlan.duration || "-"} mins</p>
                 <p>{client.workoutPlan.notes || "No notes yet."}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase text-brand-muted">
-                    Status
-                  </span>
-                  <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      client.workoutPlan.status === "completed"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {client.workoutPlan.status || "assigned"}
-                  </span>
-                </div>
-                {client.workoutPlan.completedAt && (
-                  <p className="text-xs text-brand-muted">
-                    Completed {formatDateTime(client.workoutPlan.completedAt)}
-                  </p>
-                )}
                 <p className="text-xs text-brand-muted">
                   Updated {formatDateTime(client.workoutPlan.assignedAt)}
                 </p>
-                {client.workoutPlan.status !== "completed" && (
-                  <PrimaryButton
-                    className="w-auto px-4 mt-2"
-                    onClick={handleWorkoutCompletion}
-                    disabled={assigning}
-                  >
-                    Mark as Completed
-                  </PrimaryButton>
-                )}
+                {client.workoutPlan.items?.length ? (
+                  <div className="mt-3 space-y-4">
+                    {groupItemsByDate(
+                      client.workoutPlan.items,
+                      client.workoutPlan.assignedAt
+                    ).map(([date, items]) => (
+                      <div key={date} className="space-y-2">
+                        <p className="text-xs font-semibold text-brand-muted">
+                          {date}
+                        </p>
+                        {items.map((item) => (
+                          <div
+                            key={item.workoutId}
+                            className="flex items-center justify-between border border-brand-border rounded-2xl px-3 py-2 text-xs"
+                          >
+                            <div>
+                              <p className="text-brand-ink font-semibold">
+                                {item.workoutName || "Workout Item"}
+                              </p>
+                              <p className="text-brand-muted">
+                                {item.category || "Workout"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
+                                  item.status === "completed"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {item.status || "assigned"}
+                              </span>
+                              {item.status !== "completed" && (
+                                <PrimaryButton
+                                  className="w-auto px-3 py-2 text-xs"
+                                  onClick={() =>
+                                    handleWorkoutCompletion(item.workoutId)
+                                  }
+                                  disabled={assigning}
+                                >
+                                  Mark as Completed
+                                </PrimaryButton>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-brand-muted">
@@ -845,13 +1122,23 @@ const ClientDetail = () => {
                         {workout.caloriesPerMin || "-"} cal/min
                       </p>
                     </div>
-                    <PrimaryButton
-                      className="w-auto px-4"
-                      onClick={() => handleAssignWorkout(workout)}
-                      disabled={assigning}
-                    >
-                      Assign
-                    </PrimaryButton>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs text-brand-muted">
+                        <input
+                          type="checkbox"
+                          checked={selectedWorkoutIds.includes(workout.id)}
+                          onChange={() => toggleWorkoutSelection(workout.id)}
+                        />
+                        Select
+                      </label>
+                      <PrimaryButton
+                        className="w-auto px-4"
+                        onClick={() => handleAssignWorkout(workout.id)}
+                        disabled={assigning}
+                      >
+                        Assign
+                      </PrimaryButton>
+                    </div>
                   </div>
                 ))}
                 {!workoutResults.length && (
@@ -860,6 +1147,18 @@ const ClientDetail = () => {
                   </p>
                 )}
               </div>
+              {!!workoutResults.length && (
+                <div className="mt-3 flex items-center justify-between text-xs text-brand-muted">
+                  <span>{selectedWorkoutIds.length} selected</span>
+                  <PrimaryButton
+                    className="w-auto px-4"
+                    onClick={() => handleAssignWorkout(undefined)}
+                    disabled={assigning || !selectedWorkoutIds.length}
+                  >
+                    Assign Selected
+                  </PrimaryButton>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-brand-border">
@@ -880,12 +1179,30 @@ const ClientDetail = () => {
                   Search
                 </PrimaryButton>
               </div>
-              <TextInput
-                label="Notes"
-                value={mealNotes}
-                onChange={(event) => setMealNotes(event.target.value)}
-                placeholder="Example: post-workout meal"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="text-sm font-medium text-brand-ink">
+                    Meal type
+                  </label>
+                  <select
+                    value={mealType}
+                    onChange={(event) => setMealType(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-brand-border px-3 py-3 text-sm"
+                  >
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snacks">Snacks</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <TextInput
+                  label="Notes"
+                  value={mealNotes}
+                  onChange={(event) => setMealNotes(event.target.value)}
+                  placeholder="Example: post-workout meal"
+                />
+              </div>
               <div className="mt-4 space-y-2 text-sm text-brand-muted">
                 {foodResults.map((food) => (
                   <div
@@ -912,13 +1229,23 @@ const ClientDetail = () => {
                         </p>
                       </div>
                     </div>
-                    <PrimaryButton
-                      className="w-auto px-4"
-                      onClick={() => handleAssignMeal(food)}
-                      disabled={assigning}
-                    >
-                      Assign
-                    </PrimaryButton>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs text-brand-muted">
+                        <input
+                          type="checkbox"
+                          checked={selectedFoodIds.includes(food.id)}
+                          onChange={() => toggleFoodSelection(food.id)}
+                        />
+                        Select
+                      </label>
+                      <PrimaryButton
+                        className="w-auto px-4"
+                        onClick={() => handleAssignMeal(food.id)}
+                        disabled={assigning}
+                      >
+                        Assign
+                      </PrimaryButton>
+                    </div>
                   </div>
                 ))}
                 {!foodResults.length && (
@@ -927,6 +1254,18 @@ const ClientDetail = () => {
                   </p>
                 )}
               </div>
+              {!!foodResults.length && (
+                <div className="mt-3 flex items-center justify-between text-xs text-brand-muted">
+                  <span>{selectedFoodIds.length} selected</span>
+                  <PrimaryButton
+                    className="w-auto px-4"
+                    onClick={() => handleAssignMeal(undefined)}
+                    disabled={assigning || !selectedFoodIds.length}
+                  >
+                    Assign Selected
+                  </PrimaryButton>
+                </div>
+              )}
             </div>
             {actionError && (
               <p className="text-xs text-red-500">{actionError}</p>
@@ -940,12 +1279,15 @@ const ClientDetail = () => {
         style={{ position: "absolute", left: "-10000px", top: 0, width: 900 }}
         className="bg-white text-slate-900 p-10 space-y-6"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+        <div
+          data-report-header
+          className="flex items-center justify-between border-b border-slate-200 pb-6"
+        >
           <div className="flex items-center gap-4">
             <img
               src={branding.logoUrl}
               alt={branding.appName}
-              className="h-12 w-12 rounded-xl object-contain"
+              className="h-10 w-24 object-contain"
               crossOrigin="anonymous"
             />
             <div>
@@ -963,120 +1305,421 @@ const ClientDetail = () => {
               {client.firstName} {client.lastName}
             </p>
             <p>{client.email}</p>
-            <p>{client.phone || "-"}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          {summaryCards.map((card) => (
-            <div key={card.label} className="bg-slate-50 rounded-2xl p-4">
-              <p className="text-xs uppercase text-slate-500">{card.label}</p>
-              <p className="text-lg font-semibold text-slate-900 mt-2">
-                {card.value}
+        <div data-report-body className="space-y-6">
+          <div
+            data-report-section
+            className="bg-slate-50 rounded-2xl p-5 flex items-center gap-6"
+          >
+            <div className="min-w-[220px]">
+              <p className="text-xs uppercase text-slate-500">{scoreLabel}</p>
+              <p className="text-3xl font-semibold text-slate-900">
+                {benchmarkScore}/10
               </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <ChartCard
-            title="Steps Trend"
-            data={stepsSeries}
-            color={chartColor}
-            xKey="label"
-            yKey="value"
-            height={200}
-          />
-          <ChartCard
-            title="Calories Intake"
-            data={caloriesSeries}
-            color={chartColor}
-            xKey="label"
-            yKey="value"
-            height={200}
-          />
-          <ChartCard
-            title="Weight Trend"
-            data={weightSeries}
-            color={chartColor}
-            xKey="label"
-            yKey="value"
-            height={200}
-          />
-          <ChartCard
-            title="Water Intake"
-            data={waterSeries}
-            color={chartColor}
-            xKey="label"
-            yKey="value"
-            height={200}
-          />
-          <ChartCard
-            title="Sleep Hours"
-            data={sleepSeries}
-            color={chartColor}
-            xKey="label"
-            yKey="value"
-            height={200}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          <div className="bg-slate-50 rounded-2xl p-4">
-            <h2 className="text-base font-semibold mb-3">Recent Workouts</h2>
-            <div className="space-y-2 text-sm text-slate-600">
-              {filteredWorkouts.slice(0, 6).map((workout) => (
-                <div key={workout._id} className="flex justify-between">
-                  <span>{formatDate(workout.dateObj || workout.date)}</span>
-                  <span>{workout.workouts?.length || 0} sessions</span>
-                </div>
-              ))}
-              {!filteredWorkouts.length && <p>No workouts logged.</p>}
-            </div>
-          </div>
-          <div className="bg-slate-50 rounded-2xl p-4">
-            <h2 className="text-base font-semibold mb-3">Recent Meals</h2>
-            <div className="space-y-2 text-sm text-slate-600">
-              {filteredFoods.slice(0, 6).map((log) => (
-                <div key={log._id} className="flex justify-between">
-                  <span>{formatDate(log.date || log.createdAt)}</span>
-                  <span>
-                    {log.dailyTotals?.calories
-                      ? `${Math.round(log.dailyTotals.calories)} kcal`
-                      : "-"}
+              <p className="text-xs text-slate-500">
+                Benchmarks achieved this period
+              </p>
+              <div className="mt-3 text-xs text-slate-600 space-y-1">
+                <p>
+                  Avg Steps:{" "}
+                  <span className="font-semibold text-slate-900">
+                    {Math.round(stepsStats.avg)}
                   </span>
-                </div>
-              ))}
-              {!filteredFoods.length && <p>No meals logged.</p>}
-            </div>
-          </div>
-          <div className="bg-slate-50 rounded-2xl p-4">
-            <h2 className="text-base font-semibold mb-3">Recent Sleep</h2>
-            <div className="space-y-2 text-sm text-slate-600">
-              {filteredSleeps.slice(0, 6).map((entry) => (
-                <div key={entry._id} className="flex flex-col">
-                  <span>{formatDate(entry.date || entry.sleep_time)}</span>
-                  <span className="text-xs">
-                    {formatDateTime(entry.sleep_time)} to{" "}
-                    {formatDateTime(entry.wake_time)}
+                </p>
+                <p>
+                  Avg Sleep:{" "}
+                  <span className="font-semibold text-slate-900">
+                    {Math.round(sleepStats.avg * 10) / 10} hrs
                   </span>
-                </div>
-              ))}
-              {!filteredSleeps.length && <p>No sleep logs.</p>}
+                </p>
+                <p>
+                  Avg Water:{" "}
+                  <span className="font-semibold text-slate-900">
+                    {Math.round(waterStats.avg * 10) / 10} glasses
+                  </span>
+                </p>
+                <p>
+                  Avg Calories:{" "}
+                  <span className="font-semibold text-slate-900">
+                    {Math.round(caloriesStats.avg)} kcal
+                  </span>
+                </p>
+              </div>
             </div>
+            <svg width="120" height="120" viewBox="0 0 120 120" className="ml-auto">
+              <circle
+                cx="60"
+                cy="60"
+                r={gaugeRadius}
+                stroke="#e2e8f0"
+                strokeWidth="10"
+                fill="none"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r={gaugeRadius}
+                stroke={chartColor}
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={gaugeCircumference}
+                strokeDashoffset={gaugeCircumference * (1 - scorePercent)}
+                transform="rotate(-90 60 60)"
+              />
+              <text
+                x="60"
+                y="64"
+                textAnchor="middle"
+                fontSize="18"
+                fontWeight="600"
+                fill="#0f172a"
+              >
+                {benchmarkScore}
+              </text>
+            </svg>
           </div>
-          <div className="bg-slate-50 rounded-2xl p-4">
-            <h2 className="text-base font-semibold mb-3">Progress Benchmarks</h2>
+
+          <div data-report-section className="grid grid-cols-3 gap-4">
+            {summaryCards.map((card) => (
+              <div key={card.label} className="bg-slate-50 rounded-2xl p-4">
+                <p className="text-xs uppercase text-slate-500">{card.label}</p>
+                <p className="text-lg font-semibold text-slate-900 mt-2">
+                  {card.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div data-report-section className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              {benchmarks.map((item) => (
-                <ProgressBar
-                  key={item.label}
-                  label={item.label}
-                  current={item.current}
-                  target={item.target}
-                  unit={item.unit}
-                />
-              ))}
+              <ChartCard
+                title="Steps Trend"
+                data={stepsSeries}
+                color={chartColor}
+                xKey="label"
+                yKey="value"
+                height={200}
+              />
+              <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600">
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Weekly Steps Summary
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <p>
+                    Avg:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(stepsStats.avg)}
+                    </span>
+                  </p>
+                  <p>
+                    Max:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(stepsStats.max)}
+                    </span>
+                  </p>
+                  <p>
+                    Min:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(stepsStats.min)}
+                    </span>
+                  </p>
+                  <p>
+                    Change:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {formatDelta(stepsStats.change)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <ChartCard
+                title="Calories Intake"
+                data={caloriesSeries}
+                color={chartColor}
+                xKey="label"
+                yKey="value"
+                height={200}
+              />
+              <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600">
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Weekly Calories Summary
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <p>
+                    Avg:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(caloriesStats.avg)} kcal
+                    </span>
+                  </p>
+                  <p>
+                    Max:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(caloriesStats.max)} kcal
+                    </span>
+                  </p>
+                  <p>
+                    Min:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(caloriesStats.min)} kcal
+                    </span>
+                  </p>
+                  <p>
+                    Change:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {formatDelta(caloriesStats.change, " kcal")}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div data-report-section className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <ChartCard
+                title="Weight Trend"
+                data={weightSeries}
+                color={chartColor}
+                xKey="label"
+                yKey="value"
+                height={200}
+              />
+              <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600">
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Weekly Weight Summary
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <p>
+                    Avg:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(weightStats.avg * 10) / 10} kg
+                    </span>
+                  </p>
+                  <p>
+                    Max:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(weightStats.max * 10) / 10} kg
+                    </span>
+                  </p>
+                  <p>
+                    Min:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(weightStats.min * 10) / 10} kg
+                    </span>
+                  </p>
+                  <p>
+                    Change:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {formatDelta(weightStats.change, " kg")}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <ChartCard
+                title="Water Intake"
+                data={waterSeries}
+                color={chartColor}
+                xKey="label"
+                yKey="value"
+                height={200}
+              />
+              <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600">
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Weekly Water Summary
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <p>
+                    Avg:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(waterStats.avg * 10) / 10} glasses
+                    </span>
+                  </p>
+                  <p>
+                    Max:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(waterStats.max * 10) / 10} glasses
+                    </span>
+                  </p>
+                  <p>
+                    Min:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(waterStats.min * 10) / 10} glasses
+                    </span>
+                  </p>
+                  <p>
+                    Change:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {formatDelta(waterStats.change)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div data-report-section className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <ChartCard
+                title="Sleep Hours"
+                data={sleepSeries}
+                color={chartColor}
+                xKey="label"
+                yKey="value"
+                height={200}
+              />
+              <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600">
+                <p className="text-sm font-semibold text-slate-700 mb-2">
+                  Weekly Sleep Summary
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <p>
+                    Avg:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(sleepStats.avg * 10) / 10} hrs
+                    </span>
+                  </p>
+                  <p>
+                    Max:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(sleepStats.max * 10) / 10} hrs
+                    </span>
+                  </p>
+                  <p>
+                    Min:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {Math.round(sleepStats.min * 10) / 10} hrs
+                    </span>
+                  </p>
+                  <p>
+                    Change:{" "}
+                    <span className="font-semibold text-slate-900">
+                      {formatDelta(sleepStats.change, " hrs")}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-4">
+              <h2 className="text-base font-semibold mb-3">Recent Sleep</h2>
+              <div className="space-y-2 text-sm text-slate-600">
+                {filteredSleeps.slice(0, 6).map((entry) => (
+                  <div key={entry._id} className="flex flex-col">
+                    <span>{formatDate(entry.date || entry.sleep_time)}</span>
+                    <span className="text-xs">
+                      {formatDateTime(entry.sleep_time)} to{" "}
+                      {formatDateTime(entry.wake_time)}
+                    </span>
+                  </div>
+                ))}
+                {!filteredSleeps.length && <p>No sleep logs.</p>}
+              </div>
+            </div>
+          </div>
+
+          <div data-report-section className="grid grid-cols-2 gap-6">
+            <div className="bg-slate-50 rounded-2xl p-4">
+              <h2 className="text-base font-semibold mb-3">Recent Workouts</h2>
+              <div className="space-y-3 text-sm text-slate-600">
+                {filteredWorkouts.slice(0, 6).map((workout) => (
+                  <div key={workout._id} className="space-y-1">
+                    <div className="flex justify-between">
+                      <span>{formatDate(workout.dateObj || workout.date)}</span>
+                      <span>{workout.workouts?.length || 0} sessions</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {(workout.workouts || [])
+                        .map(
+                          (item) =>
+                            item.workoutName ||
+                            item.activity ||
+                            item.name ||
+                            item.type
+                        )
+                        .filter(Boolean)
+                        .slice(0, 4)
+                        .join(", ") || "Workout logged"}
+                    </p>
+                  </div>
+                ))}
+                {!filteredWorkouts.length && <p>No workouts logged.</p>}
+              </div>
+            </div>
+                        <div className="bg-slate-50 rounded-2xl p-4">
+              <h2 className="text-base font-semibold mb-3">Recent Meals</h2>
+              <div className="text-sm text-slate-600">
+                <div className="grid grid-cols-[1.4fr_0.6fr_0.5fr] gap-3 text-[11px] uppercase text-slate-400 mb-2">
+                  <span>Meals</span>
+                  <span>Date</span>
+                  <span className="text-right">Kcal</span>
+                </div>
+                <div className="space-y-3">
+                  {filteredFoods.slice(0, 6).map((log) => {
+                    const mealSummary =
+                      (log.meals || [])
+                        .map((meal) => {
+                          const label = meal.mealType || meal.name || "Meal";
+                          const items = (meal.items || [])
+                            .map(
+                              (item) =>
+                                item.name ||
+                                item.foodName ||
+                                item.food_name ||
+                                item.title
+                            )
+                            .filter(Boolean)
+                            .slice(0, 3);
+                          if (items.length) {
+                            return `${label}: ${items.join(", ")}`;
+                          }
+                          return label;
+                        })
+                        .filter(Boolean)
+                        .join(", ") || "Meals logged";
+
+                    return (
+                      <div
+                        key={log._id}
+                        className="grid grid-cols-[1.4fr_0.6fr_0.5fr] gap-3 text-sm"
+                      >
+                        <span className="text-slate-700 font-medium">
+                          {mealSummary}
+                        </span>
+                        <span className="text-slate-500">
+                          {formatDate(log.date || log.createdAt)}
+                        </span>
+                        <span className="text-right text-slate-700 font-semibold">
+                          {log.dailyTotals?.calories
+                            ? `${Math.round(log.dailyTotals.calories)}`
+                            : "-"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {!filteredFoods.length && <p>No meals logged.</p>}
+                </div>
+              </div>
+            </div><div className="bg-slate-50 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-semibold">Progress Benchmarks</h2>
+                <span className="text-sm font-semibold text-slate-700">
+                  Score: {benchmarkScore}/10
+                </span>
+              </div>
+              <div className="space-y-3">
+                {benchmarks.map((item) => (
+                  <ProgressBar
+                    key={item.label}
+                    label={item.label}
+                    current={item.current}
+                    target={item.target}
+                    unit={item.unit}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1086,3 +1729,4 @@ const ClientDetail = () => {
 };
 
 export default ClientDetail;
+

@@ -23,12 +23,24 @@ const ClientSchema = new mongoose.Schema(
         {
           foodId: String,
           foodName: String,
+          mealType: {
+            type: String,
+            enum: ["breakfast", "lunch", "dinner", "snacks", "other"],
+            default: "other"
+          },
           energyKcal: Number,
           carbs: Number,
           protein: Number,
           fat: Number,
           servingsUnit: String,
-          imageUrl: String
+          imageUrl: String,
+          assignedAt: { type: Date, default: Date.now },
+          status: {
+            type: String,
+            enum: ["assigned", "completed"],
+            default: "assigned"
+          },
+          completedAt: { type: Date }
         }
       ],
       assignedAt: { type: Date, default: Date.now }
@@ -57,7 +69,14 @@ const ClientSchema = new mongoose.Schema(
           category: String,
           unit: String,
           caloriesPerMin: Number,
-          caloriesPerRep: Number
+          caloriesPerRep: Number,
+          assignedAt: { type: Date, default: Date.now },
+          status: {
+            type: String,
+            enum: ["assigned", "completed"],
+            default: "assigned"
+          },
+          completedAt: { type: Date }
         }
       ],
       assignedAt: { type: Date, default: Date.now }
