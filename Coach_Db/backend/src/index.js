@@ -15,17 +15,28 @@ import libraryRoutes from "./routes/libraryRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { logger } from "./utils/logger.js";
 
+
 const app = express();
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL?.split(",") || ["http://localhost:5173"],
-    credentials: true
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With"
+    ]
   })
 );
+
+app.options("*", cors());
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
+
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
