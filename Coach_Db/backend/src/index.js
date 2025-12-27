@@ -17,6 +17,7 @@ import { logger } from "./utils/logger.js";
 
 
 const app = express();
+const API_BASE = "/api";
 
 app.use(
   cors({
@@ -39,15 +40,16 @@ app.use(morgan("dev"));
 
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
+app.get(`${API_BASE}/health`, (req, res) => res.json({ status: "ok" }));
 
-app.use("/auth", authRoutes);
-app.use("/tenants", tenantRoutes);
-app.use("/clients", clientRoutes);
-app.use("/dashboard", dashboardRoutes);
-app.use("/branding", brandingRoutes);
-app.use("/leads", leadRoutes);
-app.use("/followups", followUpRoutes);
-app.use("/library", libraryRoutes);
+app.use(`${API_BASE}/auth`, authRoutes);
+app.use(`${API_BASE}/tenants`, tenantRoutes);
+app.use(`${API_BASE}/clients`, clientRoutes);
+app.use(`${API_BASE}/dashboard`, dashboardRoutes);
+app.use(`${API_BASE}/branding`, brandingRoutes);
+app.use(`${API_BASE}/leads`, leadRoutes);
+app.use(`${API_BASE}/followups`, followUpRoutes);
+app.use(`${API_BASE}/library`, libraryRoutes);
 
 app.use(errorHandler);
 
