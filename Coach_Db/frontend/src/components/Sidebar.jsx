@@ -1,6 +1,8 @@
 import {
   ArrowRightOnRectangleIcon,
+  BoltIcon,
   CalendarDaysIcon,
+  ClipboardDocumentListIcon,
   Cog6ToothIcon,
   HomeIcon,
   UsersIcon,
@@ -18,6 +20,8 @@ const navItems = [
   { label: "Clients", path: "/clients", icon: UsersIcon },
   { label: "Leads", path: "/leads", icon: UsersIcon },
   { label: "Follow-ups", path: "/follow-ups", icon: CalendarDaysIcon },
+  { label: "Workouts", path: "/workouts", icon: BoltIcon },
+  { label: "Meals", path: "/meals", icon: ClipboardDocumentListIcon },
   { label: "Settings", path: "/settings", icon: Cog6ToothIcon }
 ];
 

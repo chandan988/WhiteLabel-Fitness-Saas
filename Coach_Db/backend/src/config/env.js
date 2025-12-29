@@ -16,6 +16,7 @@ export const env = {
     process.env.DEFAULT_BRAND_LOGO ||
     "https://placehold.co/120x40?text=Jeevanshaili",
   defaultBrandName: process.env.DEFAULT_BRAND_NAME || "Jeevanshaili",
+  defaultLoginDomain: process.env.DEFAULT_LOGIN_DOMAIN || "",
   defaultFromEmail: process.env.DEFAULT_FROM_EMAIL || "",
   smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
   smtpPort: Number(process.env.SMTP_PORT) || 587,

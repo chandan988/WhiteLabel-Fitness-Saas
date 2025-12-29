@@ -78,38 +78,51 @@ const DashboardHome = () => {
   const selectedCaloriesBurned =
     selectedWorkouts?.[0]?.dailyStats?.calories || 0;
 
+  const combinedToday =
+    summary?.today && Object.keys(summary?.today || {}).length
+      ? summary.today
+      : summary?.totals || {};
+
   const metrics = [
     {
       label: "Today's Calories Burned",
-      value: selectedSummary ? selectedCaloriesBurned : summary?.today?.caloriesBurned || 0,
+      value: selectedSummary
+        ? selectedCaloriesBurned
+        : combinedToday.caloriesBurned || 0,
       unit: "kcal"
     },
     {
       label: "Today's Steps",
-      value: selectedSummary ? selectedSummary.latestSteps || 0 : summary?.today?.steps || 0
+      value: selectedSummary
+        ? selectedSummary.latestSteps || 0
+        : combinedToday.steps || 0
     },
     {
       label: "Today's Cal Intake",
       value: selectedSummary
         ? selectedSummary.latestFood?.calories || 0
-        : summary?.today?.caloriesIntake || 0,
+        : combinedToday.caloriesIntake || 0,
       unit: "kcal"
     },
     {
       label: "Water Intake",
-      value: selectedSummary ? selectedSummary.latestWater || 0 : summary?.today?.waterIntake || 0,
+      value: selectedSummary
+        ? selectedSummary.latestWater || 0
+        : combinedToday.waterIntake || 0,
       unit: "L"
     },
     {
       label: "Sleep",
-      value: selectedSummary ? selectedSummary.latestSleep || 0 : summary?.today?.sleepHours || 0,
+      value: selectedSummary
+        ? selectedSummary.latestSleep || 0
+        : combinedToday.sleepHours || 0,
       unit: "hrs"
     },
     {
       label: "Workout summary",
       value: selectedSummary
         ? selectedSummary.latestWorkoutCount || 0
-        : summary?.today?.workoutsCompleted || 0,
+        : combinedToday.workoutsCompleted || 0,
       unit: "sessions"
     }
   ];

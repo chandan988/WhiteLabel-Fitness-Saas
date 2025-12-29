@@ -13,6 +13,8 @@ const ClientSchema = new mongoose.Schema(
       name: String,
       calories: String,
       notes: String,
+      weekStart: { type: Date },
+      weekEnd: { type: Date },
       status: {
         type: String,
         enum: ["assigned", "completed"],
@@ -25,9 +27,18 @@ const ClientSchema = new mongoose.Schema(
           foodName: String,
           mealType: {
             type: String,
-            enum: ["breakfast", "lunch", "dinner", "snacks", "other"],
+            enum: [
+              "breakfast",
+              "morning_snack",
+              "lunch",
+              "evening_snack",
+              "dinner",
+              "snacks",
+              "other"
+            ],
             default: "other"
           },
+          dayOfWeek: { type: Number, min: 0, max: 6 },
           energyKcal: Number,
           carbs: Number,
           protein: Number,
@@ -49,6 +60,8 @@ const ClientSchema = new mongoose.Schema(
       name: String,
       duration: Number,
       notes: String,
+      weekStart: { type: Date },
+      weekEnd: { type: Date },
       status: {
         type: String,
         enum: ["assigned", "completed"],
@@ -70,6 +83,7 @@ const ClientSchema = new mongoose.Schema(
           unit: String,
           caloriesPerMin: Number,
           caloriesPerRep: Number,
+          dayOfWeek: { type: Number, min: 0, max: 6 },
           assignedAt: { type: Date, default: Date.now },
           status: {
             type: String,

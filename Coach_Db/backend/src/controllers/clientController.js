@@ -64,8 +64,12 @@ export const assignWorkoutController = asyncHandler(async (req, res) => {
     clientId: req.params.id,
     tenantId: req.user.tenantId,
     workoutId: req.body.workoutId,
+    workoutIds: req.body.workoutIds,
     duration: req.body.duration,
-    notes: req.body.notes
+    notes: req.body.notes,
+    weekStart: req.body.weekStart,
+    dayOfWeek: req.body.dayOfWeek,
+    applyToWeek: req.body.applyToWeek
   });
   res.json(client);
 });
@@ -78,7 +82,10 @@ export const assignMealController = asyncHandler(async (req, res) => {
     foodId: req.body.foodId,
     foodIds: req.body.foodIds,
     mealType: req.body.mealType,
-    notes: req.body.notes
+    notes: req.body.notes,
+    weekStart: req.body.weekStart,
+    dayOfWeek: req.body.dayOfWeek,
+    applyToWeek: req.body.applyToWeek
   });
   res.json(client);
 });

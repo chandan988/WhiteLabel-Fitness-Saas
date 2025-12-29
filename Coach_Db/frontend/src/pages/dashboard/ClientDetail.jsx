@@ -93,6 +93,33 @@ const average = (values) => {
 };
 
 const getDayKey = (date) => date.toISOString().slice(0, 10);
+const dayLabels = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday"
+];
+const mealTypeLabels = {
+  breakfast: "Breakfast",
+  morning_snack: "Morning Snack",
+  lunch: "Lunch",
+  evening_snack: "Evening Snack",
+  dinner: "Dinner",
+  snacks: "Snacks",
+  other: "Other"
+};
+const mealTypeOrder = {
+  breakfast: 1,
+  morning_snack: 2,
+  lunch: 3,
+  evening_snack: 4,
+  dinner: 5,
+  snacks: 6,
+  other: 7
+};
 
 const buildSeries = (entries, getDate, getValue, aggregate = "sum") => {
   const map = new Map();
@@ -138,6 +165,33 @@ const formatDelta = (value, unit = "") => {
   const rounded = Math.round(value * 10) / 10;
   const sign = rounded > 0 ? "+" : "";
   return `${sign}${rounded}${unit}`;
+};
+
+const getWeekStartString = (value) => {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return getWeekStartString();
+  }
+  const day = date.getDay();
+  const start = new Date(date);
+  start.setDate(start.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return start.toISOString().slice(0, 10);
+};
+
+const groupItemsByDay = (items = []) => {
+  const map = new Map();
+  items.forEach((item) => {
+    const day =
+      Number.isFinite(Number(item.dayOfWeek)) && item.dayOfWeek >= 0
+        ? Number(item.dayOfWeek)
+        : new Date(item.assignedAt || Date.now()).getDay();
+    if (!map.has(day)) {
+      map.set(day, []);
+    }
+    map.get(day).push(item);
+  });
+  return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
 };
 
 const ProgressBar = ({ label, current, target, unit }) => {
@@ -189,10 +243,15 @@ const ClientDetail = () => {
   const [workoutQuery, setWorkoutQuery] = useState("");
   const [workoutResults, setWorkoutResults] = useState([]);
   const [selectedWorkoutIds, setSelectedWorkoutIds] = useState([]);
+  const [workoutDay, setWorkoutDay] = useState(new Date().getDay());
+  const [applyWorkoutsToWeek, setApplyWorkoutsToWeek] = useState(false);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState([]);
   const [selectedFoodIds, setSelectedFoodIds] = useState([]);
   const [mealType, setMealType] = useState("breakfast");
+  const [mealDay, setMealDay] = useState(new Date().getDay());
+  const [applyMealsToWeek, setApplyMealsToWeek] = useState(false);
+  const [weekStart, setWeekStart] = useState(getWeekStartString());
   const [workoutNotes, setWorkoutNotes] = useState("");
   const [workoutDuration, setWorkoutDuration] = useState("");
   const [mealNotes, setMealNotes] = useState("");
@@ -373,8 +432,6 @@ const ClientDetail = () => {
 
   const scorePercent = Math.min(Math.max(benchmarkScore / 10, 0), 1);
   const scoreLabel = period === "month" ? "30 Day Score" : "Weekly Score";
-  const gaugeRadius = 48;
-  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
 
   const handleWorkoutSearch = async () => {
     setActionError("");
@@ -419,7 +476,10 @@ const ClientDetail = () => {
         workoutId,
         workoutIds: workoutId ? undefined : selectedWorkoutIds,
         duration: workoutDuration,
-        notes: workoutNotes
+        notes: workoutNotes,
+        weekStart,
+        dayOfWeek: workoutDay,
+        applyToWeek: applyWorkoutsToWeek
       });
       setSelectedWorkoutIds([]);
     } catch (err) {
@@ -434,7 +494,10 @@ const ClientDetail = () => {
         foodId,
         foodIds: foodId ? undefined : selectedFoodIds,
         mealType,
-        notes: mealNotes
+        notes: mealNotes,
+        weekStart,
+        dayOfWeek: mealDay,
+        applyToWeek: applyMealsToWeek
       });
       setSelectedFoodIds([]);
     } catch (err) {
@@ -592,36 +655,6 @@ const ClientDetail = () => {
       </DashboardLayout>
     );
   }
-
-  const groupItemsByDate = (items, fallbackDate) => {
-    const groups = new Map();
-    items.forEach((item) => {
-      const assignedDate = item.assignedAt;
-      const createdDate = getObjectIdDate(item._id);
-      const completedDate = item.completedAt ? new Date(item.completedAt) : null;
-      let effectiveDate = assignedDate
-        ? new Date(assignedDate)
-        : createdDate || (fallbackDate ? new Date(fallbackDate) : null);
-
-      if (completedDate && effectiveDate && effectiveDate > completedDate) {
-        effectiveDate = completedDate;
-      }
-
-      if (createdDate && effectiveDate) {
-        const delta = effectiveDate.getTime() - createdDate.getTime();
-        if (delta > 1000 * 60 * 60) {
-          effectiveDate = createdDate;
-        }
-      }
-
-      const key = formatShortDate(effectiveDate || fallbackDate);
-      if (!groups.has(key)) {
-        groups.set(key, []);
-      }
-      groups.get(key).push(item);
-    });
-    return Array.from(groups.entries());
-  };
 
   return (
     <DashboardLayout>
@@ -934,63 +967,76 @@ const ClientDetail = () => {
                 </p>
                 <p>{client.mealPlan.calories || "-"} kcal</p>
                 <p>{client.mealPlan.notes || "No notes yet."}</p>
+                {client.mealPlan.weekStart && (
+                  <p className="text-xs text-brand-muted">
+                    Week of {formatDate(client.mealPlan.weekStart)}
+                  </p>
+                )}
                 <p className="text-xs text-brand-muted">
                   Updated {formatDateTime(client.mealPlan.assignedAt)}
                 </p>
                 {client.mealPlan.items?.length ? (
                   <div className="mt-3 space-y-4">
-                    {groupItemsByDate(
-                      client.mealPlan.items,
-                      client.mealPlan.assignedAt
-                    ).map(([date, items]) => (
-                      <div key={date} className="space-y-2">
-                        <p className="text-xs font-semibold text-brand-muted">
-                          {date}
-                        </p>
-                        {items.map((item) => (
-                          <div
-                            key={item.foodId}
-                            className="flex items-center justify-between border border-brand-border rounded-2xl px-3 py-2 text-xs"
-                          >
-                            <div>
-                              <p className="text-brand-ink font-semibold">
-                                {item.foodName || "Meal Item"}
-                              </p>
-                              <p className="text-brand-muted capitalize">
-                                {item.mealType || "other"}
-                              </p>
-                              <p className="text-brand-muted">
-                                {item.energyKcal
-                                  ? `${Math.round(item.energyKcal)} kcal`
-                                  : "-"}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
-                                  item.status === "completed"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
+                    {groupItemsByDay(client.mealPlan.items).map(
+                      ([day, items]) => (
+                        <div key={day} className="space-y-2">
+                          <p className="text-xs font-semibold text-brand-muted">
+                            {dayLabels[day] || `Day ${day}`}
+                          </p>
+                          {items
+                            .slice()
+                            .sort(
+                              (a, b) =>
+                                (mealTypeOrder[a.mealType] || 99) -
+                                (mealTypeOrder[b.mealType] || 99)
+                            )
+                            .map((item) => (
+                              <div
+                                key={item._id || `${item.foodId}-${item.dayOfWeek}`}
+                                className="flex items-center justify-between border border-brand-border rounded-2xl px-3 py-2 text-xs"
                               >
-                                {item.status || "assigned"}
-                              </span>
-                              {item.status !== "completed" && (
-                                <PrimaryButton
-                                  className="w-auto px-3 py-2 text-xs"
-                                  onClick={() =>
-                                    handleMealCompletion(item.foodId)
-                                  }
-                                  disabled={assigning}
-                                >
-                                  Mark as Eaten
-                                </PrimaryButton>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
+                                <div>
+                                  <p className="text-brand-ink font-semibold">
+                                    {item.foodName || "Meal Item"}
+                                  </p>
+                                  <p className="text-brand-muted">
+                                    {mealTypeLabels[item.mealType] ||
+                                      item.mealType ||
+                                      "Other"}
+                                  </p>
+                                  <p className="text-brand-muted">
+                                    {item.energyKcal
+                                      ? `${Math.round(item.energyKcal)} kcal`
+                                      : "-"}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
+                                      item.status === "completed"
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-amber-100 text-amber-700"
+                                    }`}
+                                  >
+                                    {item.status || "assigned"}
+                                  </span>
+                                  {item.status !== "completed" && (
+                                    <PrimaryButton
+                                      className="w-auto px-3 py-2 text-xs"
+                                      onClick={() =>
+                                        handleMealCompletion(item._id)
+                                      }
+                                      disabled={assigning}
+                                    >
+                                      Mark as Eaten
+                                    </PrimaryButton>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -1012,58 +1058,62 @@ const ClientDetail = () => {
                 </p>
                 <p>{client.workoutPlan.duration || "-"} mins</p>
                 <p>{client.workoutPlan.notes || "No notes yet."}</p>
+                {client.workoutPlan.weekStart && (
+                  <p className="text-xs text-brand-muted">
+                    Week of {formatDate(client.workoutPlan.weekStart)}
+                  </p>
+                )}
                 <p className="text-xs text-brand-muted">
                   Updated {formatDateTime(client.workoutPlan.assignedAt)}
                 </p>
                 {client.workoutPlan.items?.length ? (
                   <div className="mt-3 space-y-4">
-                    {groupItemsByDate(
-                      client.workoutPlan.items,
-                      client.workoutPlan.assignedAt
-                    ).map(([date, items]) => (
-                      <div key={date} className="space-y-2">
-                        <p className="text-xs font-semibold text-brand-muted">
-                          {date}
-                        </p>
-                        {items.map((item) => (
-                          <div
-                            key={item.workoutId}
-                            className="flex items-center justify-between border border-brand-border rounded-2xl px-3 py-2 text-xs"
-                          >
-                            <div>
-                              <p className="text-brand-ink font-semibold">
-                                {item.workoutName || "Workout Item"}
-                              </p>
-                              <p className="text-brand-muted">
-                                {item.category || "Workout"}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
-                                  item.status === "completed"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
-                              >
-                                {item.status || "assigned"}
-                              </span>
-                              {item.status !== "completed" && (
-                                <PrimaryButton
-                                  className="w-auto px-3 py-2 text-xs"
-                                  onClick={() =>
-                                    handleWorkoutCompletion(item.workoutId)
-                                  }
-                                  disabled={assigning}
+                    {groupItemsByDay(client.workoutPlan.items).map(
+                      ([day, items]) => (
+                        <div key={day} className="space-y-2">
+                          <p className="text-xs font-semibold text-brand-muted">
+                            {dayLabels[day] || `Day ${day}`}
+                          </p>
+                          {items.map((item) => (
+                            <div
+                              key={item._id || `${item.workoutId}-${item.dayOfWeek}`}
+                              className="flex items-center justify-between border border-brand-border rounded-2xl px-3 py-2 text-xs"
+                            >
+                              <div>
+                                <p className="text-brand-ink font-semibold">
+                                  {item.workoutName || "Workout Item"}
+                                </p>
+                                <p className="text-brand-muted">
+                                  {item.category || "Workout"}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
+                                    item.status === "completed"
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-amber-100 text-amber-700"
+                                  }`}
                                 >
-                                  Mark as Completed
-                                </PrimaryButton>
-                              )}
+                                  {item.status || "assigned"}
+                                </span>
+                                {item.status !== "completed" && (
+                                  <PrimaryButton
+                                    className="w-auto px-3 py-2 text-xs"
+                                    onClick={() =>
+                                      handleWorkoutCompletion(item._id)
+                                    }
+                                    disabled={assigning}
+                                  >
+                                    Mark as Completed
+                                  </PrimaryButton>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
+                          ))}
+                        </div>
+                      )
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -1092,6 +1142,42 @@ const ClientDetail = () => {
                 >
                   Search
                 </PrimaryButton>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                <TextInput
+                  label="Week Start"
+                  type="date"
+                  value={weekStart}
+                  onChange={(event) => setWeekStart(event.target.value)}
+                />
+                <div>
+                  <label className="text-sm font-medium text-brand-ink">
+                    Day of Week
+                  </label>
+                  <select
+                    value={workoutDay}
+                    onChange={(event) =>
+                      setWorkoutDay(Number(event.target.value))
+                    }
+                    className="mt-1 w-full rounded-2xl border border-brand-border px-3 py-3 text-sm"
+                  >
+                    {dayLabels.map((label, index) => (
+                      <option key={label} value={index}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="flex items-center gap-3 text-sm text-brand-muted mt-6">
+                  <input
+                    type="checkbox"
+                    checked={applyWorkoutsToWeek}
+                    onChange={(event) =>
+                      setApplyWorkoutsToWeek(event.target.checked)
+                    }
+                  />
+                  Apply to full week
+                </label>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                 <TextInput
@@ -1179,6 +1265,40 @@ const ClientDetail = () => {
                   Search
                 </PrimaryButton>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                <TextInput
+                  label="Week Start"
+                  type="date"
+                  value={weekStart}
+                  onChange={(event) => setWeekStart(event.target.value)}
+                />
+                <div>
+                  <label className="text-sm font-medium text-brand-ink">
+                    Day of Week
+                  </label>
+                  <select
+                    value={mealDay}
+                    onChange={(event) => setMealDay(Number(event.target.value))}
+                    className="mt-1 w-full rounded-2xl border border-brand-border px-3 py-3 text-sm"
+                  >
+                    {dayLabels.map((label, index) => (
+                      <option key={label} value={index}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="flex items-center gap-3 text-sm text-brand-muted mt-6">
+                  <input
+                    type="checkbox"
+                    checked={applyMealsToWeek}
+                    onChange={(event) =>
+                      setApplyMealsToWeek(event.target.checked)
+                    }
+                  />
+                  Apply to full week
+                </label>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                 <div>
                   <label className="text-sm font-medium text-brand-ink">
@@ -1190,7 +1310,9 @@ const ClientDetail = () => {
                     className="mt-1 w-full rounded-2xl border border-brand-border px-3 py-3 text-sm"
                   >
                     <option value="breakfast">Breakfast</option>
+                    <option value="morning_snack">Morning Snack</option>
                     <option value="lunch">Lunch</option>
+                    <option value="evening_snack">Evening Snack</option>
                     <option value="dinner">Dinner</option>
                     <option value="snacks">Snacks</option>
                     <option value="other">Other</option>
@@ -1348,38 +1470,20 @@ const ClientDetail = () => {
                 </p>
               </div>
             </div>
-            <svg width="120" height="120" viewBox="0 0 120 120" className="ml-auto">
-              <circle
-                cx="60"
-                cy="60"
-                r={gaugeRadius}
-                stroke="#e2e8f0"
-                strokeWidth="10"
-                fill="none"
-              />
-              <circle
-                cx="60"
-                cy="60"
-                r={gaugeRadius}
-                stroke={chartColor}
-                strokeWidth="10"
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={gaugeCircumference}
-                strokeDashoffset={gaugeCircumference * (1 - scorePercent)}
-                transform="rotate(-90 60 60)"
-              />
-              <text
-                x="60"
-                y="64"
-                textAnchor="middle"
-                fontSize="18"
-                fontWeight="600"
-                fill="#0f172a"
-              >
-                {benchmarkScore}
-              </text>
-            </svg>
+            <div
+              className="ml-auto h-28 w-28 rounded-full flex items-center justify-center"
+              style={{
+                background: `conic-gradient(${chartColor} ${Math.round(
+                  scorePercent * 360
+                )}deg, #e2e8f0 0deg)`
+              }}
+            >
+              <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center">
+                <span className="text-lg font-semibold text-slate-900">
+                  {benchmarkScore}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div data-report-section className="grid grid-cols-3 gap-4">

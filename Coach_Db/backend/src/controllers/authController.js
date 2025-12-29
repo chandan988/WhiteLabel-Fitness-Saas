@@ -54,8 +54,13 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  logger.info("Login attempt", { email: req.body.email });
-  const { accessToken, refreshToken, user, tenant } = await loginUser(req.body);
+  const requestHost =
+    req.headers["x-forwarded-host"] || req.headers.host || req.hostname;
+  logger.info("Login attempt", { email: req.body.email, requestHost });
+  const { accessToken, refreshToken, user, tenant } = await loginUser({
+    ...req.body,
+    requestHost
+  });
   res.json({
     user: sanitizeUser(user),
     tenant: formatTenant(tenant),

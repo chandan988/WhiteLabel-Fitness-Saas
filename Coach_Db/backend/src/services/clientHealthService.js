@@ -11,6 +11,42 @@ import { FoodApi } from "../models/FoodApi.js";
 import { logger } from "../utils/logger.js";
 
 const toNumber = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
+const normalizeDayOfWeek = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < 0 || parsed > 6) return null;
+  return parsed;
+};
+
+const getWeekStart = (value) => {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return getWeekStart(new Date());
+  }
+  const day = date.getDay();
+  const start = new Date(date);
+  start.setDate(start.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return start;
+};
+
+const getWeekEnd = (weekStart) => {
+  const end = new Date(weekStart);
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end;
+};
+
+const resolveWeekDays = ({ dayOfWeek, applyToWeek }) => {
+  if (applyToWeek) {
+    return [0, 1, 2, 3, 4, 5, 6];
+  }
+  const normalized = normalizeDayOfWeek(dayOfWeek);
+  if (normalized !== null) {
+    return [normalized];
+  }
+  return [new Date().getDay()];
+};
 const getObjectIdDate = (value) => {
   if (!value) return null;
   const hex = value.toString().slice(0, 8);
@@ -39,6 +75,9 @@ const normalizeAssignedAt = (item) => {
     if (assignedTime > completedTime) {
       item.assignedAt = item.completedAt;
     }
+  }
+  if (item.assignedAt && item.dayOfWeek === undefined) {
+    item.dayOfWeek = new Date(item.assignedAt).getDay();
   }
 };
 
@@ -164,7 +203,10 @@ export const assignWorkoutToClient = async ({
   workoutId,
   workoutIds,
   notes,
-  duration
+  duration,
+  weekStart,
+  dayOfWeek,
+  applyToWeek
 }) => {
   logger.info("clientHealthService.assignWorkoutToClient", {
     clientId,
@@ -193,27 +235,45 @@ export const assignWorkoutToClient = async ({
     throw new Error("Workout not found");
   }
 
-  const planItems = workouts.map((workout) => ({
-    workoutId: workout._id?.toString(),
-    workoutName: workout.workoutName,
-    category: workout.category,
-    unit: workout.unit,
-    caloriesPerMin: toNumber(workout.caloriesPerMin),
-    caloriesPerRep: toNumber(workout.caloriesPerRep),
-    assignedAt: new Date(),
-    status: "assigned",
-    completedAt: null
-  }));
+  const weekStartDate = getWeekStart(weekStart);
+  const weekEndDate = getWeekEnd(weekStartDate);
+  const targetDays = resolveWeekDays({ dayOfWeek, applyToWeek });
+
+  const planItems = [];
+  workouts.forEach((workout) => {
+    targetDays.forEach((day) => {
+      planItems.push({
+        workoutId: workout._id?.toString(),
+        workoutName: workout.workoutName,
+        category: workout.category,
+        unit: workout.unit,
+        caloriesPerMin: toNumber(workout.caloriesPerMin),
+        caloriesPerRep: toNumber(workout.caloriesPerRep),
+        dayOfWeek: day,
+        assignedAt: new Date(),
+        status: "assigned",
+        completedAt: null
+      });
+    });
+  });
+
+  const shouldResetPlan =
+    client.workoutPlan?.weekStart &&
+    new Date(client.workoutPlan.weekStart).toDateString() !==
+      weekStartDate.toDateString();
+  const existingItems = shouldResetPlan ? [] : client.workoutPlan?.items || [];
 
   const uniqueItemsMap = new Map(
-    (client.workoutPlan?.items || []).map((item) => {
+    existingItems.map((item) => {
       normalizeAssignedAt(item);
-      return [item.workoutId, item];
+      const key = `${item.workoutId}-${item.dayOfWeek ?? "na"}`;
+      return [key, item];
     })
   );
   planItems.forEach((item) => {
-    if (!uniqueItemsMap.has(item.workoutId)) {
-      uniqueItemsMap.set(item.workoutId, item);
+    const key = `${item.workoutId}-${item.dayOfWeek ?? "na"}`;
+    if (!uniqueItemsMap.has(key)) {
+      uniqueItemsMap.set(key, item);
     }
   });
   const uniqueItems = Array.from(uniqueItemsMap.values());
@@ -231,6 +291,8 @@ export const assignWorkoutToClient = async ({
     status: "assigned",
     completedAt: null,
     exercises: client.workoutPlan?.exercises || [],
+    weekStart: weekStartDate,
+    weekEnd: weekEndDate,
     items: uniqueItems,
     assignedAt: new Date()
   };
@@ -263,7 +325,8 @@ export const updateWorkoutStatus = async ({
   const normalized = status === "completed" ? "completed" : "assigned";
   if (itemId) {
     const item = client.workoutPlan.items?.find(
-      (entry) => `${entry.workoutId}` === `${itemId}`
+      (entry) =>
+        `${entry._id}` === `${itemId}` || `${entry.workoutId}` === `${itemId}`
     );
     if (!item) {
       throw new Error("Workout item not found");
@@ -290,7 +353,10 @@ export const assignMealToClient = async ({
   foodId,
   foodIds,
   mealType,
-  notes
+  notes,
+  weekStart,
+  dayOfWeek,
+  applyToWeek
 }) => {
   logger.info("clientHealthService.assignMealToClient", {
     clientId,
@@ -316,36 +382,59 @@ export const assignMealToClient = async ({
   }
 
   const normalizedMealType = (mealType || "other").toLowerCase();
-  const safeMealType = ["breakfast", "lunch", "dinner", "snacks"].includes(
-    normalizedMealType
-  )
+  const safeMealType = [
+    "breakfast",
+    "morning_snack",
+    "lunch",
+    "evening_snack",
+    "dinner",
+    "snacks"
+  ].includes(normalizedMealType)
     ? normalizedMealType
     : "other";
 
-  const planItems = foods.map((food) => ({
-    foodId: food._id?.toString(),
-    foodName: food.food_name,
-    mealType: safeMealType,
-    energyKcal: toNumber(food.energy_kcal),
-    carbs: toNumber(food.carb_g),
-    protein: toNumber(food.protein_g),
-    fat: toNumber(food.fat_g),
-    servingsUnit: food.servings_unit,
-    imageUrl: food.food_image,
-    assignedAt: new Date(),
-    status: "assigned",
-    completedAt: null
-  }));
+  const weekStartDate = getWeekStart(weekStart);
+  const weekEndDate = getWeekEnd(weekStartDate);
+  const targetDays = resolveWeekDays({ dayOfWeek, applyToWeek });
+
+  const planItems = [];
+  foods.forEach((food) => {
+    targetDays.forEach((day) => {
+      planItems.push({
+        foodId: food._id?.toString(),
+        foodName: food.food_name,
+        mealType: safeMealType,
+        dayOfWeek: day,
+        energyKcal: toNumber(food.energy_kcal),
+        carbs: toNumber(food.carb_g),
+        protein: toNumber(food.protein_g),
+        fat: toNumber(food.fat_g),
+        servingsUnit: food.servings_unit,
+        imageUrl: food.food_image,
+        assignedAt: new Date(),
+        status: "assigned",
+        completedAt: null
+      });
+    });
+  });
+
+  const shouldResetPlan =
+    client.mealPlan?.weekStart &&
+    new Date(client.mealPlan.weekStart).toDateString() !==
+      weekStartDate.toDateString();
+  const existingItems = shouldResetPlan ? [] : client.mealPlan?.items || [];
 
   const uniqueItemsMap = new Map(
-    (client.mealPlan?.items || []).map((item) => {
+    existingItems.map((item) => {
       normalizeAssignedAt(item);
-      return [item.foodId, item];
+      const key = `${item.foodId}-${item.mealType}-${item.dayOfWeek ?? "na"}`;
+      return [key, item];
     })
   );
   planItems.forEach((item) => {
-    if (!uniqueItemsMap.has(item.foodId)) {
-      uniqueItemsMap.set(item.foodId, item);
+    const key = `${item.foodId}-${item.mealType}-${item.dayOfWeek ?? "na"}`;
+    if (!uniqueItemsMap.has(key)) {
+      uniqueItemsMap.set(key, item);
     }
   });
   const uniqueItems = Array.from(uniqueItemsMap.values());
@@ -364,6 +453,8 @@ export const assignMealToClient = async ({
     status: "assigned",
     completedAt: null,
     items: uniqueItems,
+    weekStart: weekStartDate,
+    weekEnd: weekEndDate,
     assignedAt: new Date()
   };
 
@@ -395,7 +486,7 @@ export const updateMealStatus = async ({
   const normalized = status === "completed" ? "completed" : "assigned";
   if (itemId) {
     const item = client.mealPlan.items?.find(
-      (entry) => `${entry.foodId}` === `${itemId}`
+      (entry) => `${entry._id}` === `${itemId}` || `${entry.foodId}` === `${itemId}`
     );
     if (!item) {
       throw new Error("Meal item not found");

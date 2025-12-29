@@ -9,6 +9,7 @@ import AssignMeal from "./pages/dashboard/AssignMeal.jsx";
 import AssignWorkout from "./pages/dashboard/AssignWorkout.jsx";
 import ProgressTracking from "./pages/dashboard/ProgressTracking.jsx";
 import Workouts from "./pages/dashboard/Workouts.jsx";
+import Meals from "./pages/dashboard/Meals.jsx";
 import NutritionPlans from "./pages/dashboard/NutritionPlans.jsx";
 import Recipes from "./pages/dashboard/Recipes.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
@@ -151,6 +152,14 @@ const OrgScopedRoutes = () => {
             }
           />
           <Route
+            path="meals"
+            element={
+              <PrivateRoute>
+                <Meals />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="nutrition"
             element={
               <PrivateRoute>
@@ -196,7 +205,7 @@ const Landing = () => (
     </div>
     <p className="text-brand-muted max-w-2xl">
       Each coach gets a unique URL from the Super Admin. Visit that link
-      (example: <span className="font-mono text-brand-ink">coachdb.com/your-org-id/login</span>) to
+      (example: <span className="font-mono text-brand-ink">admin.jeevanshaili.com/your-org-id/login</span>) to
       access your branded dashboard, clients, and leads. This landing page is
       intentionally blank for security.
     </p>

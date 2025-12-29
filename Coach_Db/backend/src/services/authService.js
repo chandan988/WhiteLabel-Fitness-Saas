@@ -20,6 +20,26 @@ const buildSlug = (value = "") =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 40) || `coach-${Date.now()}`;
 
+const normalizeHost = (value = "") => {
+  if (!value) return "";
+  const first = value.toString().split(",")[0].trim();
+  const withoutProtocol = first.replace(/^https?:\/\//i, "");
+  const withoutPath = withoutProtocol.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+  return withoutPort.toLowerCase();
+};
+
+const enforceLoginDomain = ({ tenant, requestHost }) => {
+  const allowedHost = normalizeHost(
+    tenant?.domain || env.defaultLoginDomain
+  );
+  const incomingHost = normalizeHost(requestHost);
+  if (!allowedHost || !incomingHost) return;
+  if (allowedHost !== incomingHost) {
+    throw new Error("Please use your organization login URL");
+  }
+};
+
 export const registerUser = async ({
   firstName,
   lastName,
@@ -62,6 +82,7 @@ export const registerUser = async ({
       packageName: `com.jeevanshaili.${slug}`,
       apiKey: crypto.randomBytes(16).toString("hex"),
       ownerId: user._id,
+      domain: env.defaultLoginDomain || undefined,
       branding: {
         appName: safeName,
         logoUrl: env.defaultBrandLogo,
@@ -112,8 +133,8 @@ export const verifyEmailToken = async (token) => {
   return user;
 };
 
-export const loginUser = async ({ email, password, orgId }) => {
-  logger.info("loginUser invoked", { email, orgId });
+export const loginUser = async ({ email, password, orgId, requestHost }) => {
+  logger.info("loginUser invoked", { email, orgId, requestHost });
   const user = await User.findOne({ email }).populate("tenantId");
   if (!user || !(await user.comparePassword(password))) {
     throw new Error("Invalid credentials");
@@ -133,6 +154,7 @@ export const loginUser = async ({ email, password, orgId }) => {
     if (!tenantDoc) {
       throw new Error("Organization not found");
     }
+    enforceLoginDomain({ tenant: tenantDoc, requestHost });
     if (
       !user.tenantId ||
       `${tenantDoc._id}` !== `${user.tenantId._id || user.tenantId}`
