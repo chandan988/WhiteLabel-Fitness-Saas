@@ -102,7 +102,7 @@ const CreateCoach = () => {
             <p className="text-sm mt-2 text-emerald-800">
               Slug / Login URL:{" "}
               <span className="font-mono">
-                {createdCoach.slug} — https://admin.jeevanshaili.com/{createdCoach.slug}/login
+                {createdCoach.slug} â€” https://admin.jeevanshaili.com/{createdCoach.slug}/login
               </span>
             </p>
             <div className="mt-4 flex flex-wrap gap-3">

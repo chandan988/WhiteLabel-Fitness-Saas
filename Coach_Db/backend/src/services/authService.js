@@ -22,20 +22,46 @@ const buildSlug = (value = "") =>
 
 const normalizeHost = (value = "") => {
   if (!value) return "";
-  const first = value.toString().split(",")[0].trim();
-  const withoutProtocol = first.replace(/^https?:\/\//i, "");
+  const trimmed = value.toString().trim();
+  const withoutProtocol = trimmed.replace(/^https?:\/\//i, "");
   const withoutPath = withoutProtocol.split("/")[0];
   const withoutPort = withoutPath.split(":")[0];
   return withoutPort.toLowerCase();
 };
 
+const normalizeHosts = (value = "") =>
+  value
+    .toString()
+    .split(",")
+    .map((entry) => normalizeHost(entry))
+    .filter(Boolean);
+
 const enforceLoginDomain = ({ tenant, requestHost }) => {
-  const allowedHost = normalizeHost(
+  const allowedHosts = normalizeHosts(
     tenant?.domain || env.defaultLoginDomain
   );
   const incomingHost = normalizeHost(requestHost);
-  if (!allowedHost || !incomingHost) return;
-  if (allowedHost !== incomingHost) {
+  logger.info("login domain check", {
+    tenantId: tenant?._id?.toString?.() || tenant?._id,
+    tenantSlug: tenant?.slug,
+    tenantDomain: tenant?.domain,
+    defaultLoginDomain: env.defaultLoginDomain,
+    allowedHosts,
+    requestHost,
+    incomingHost
+  });
+  if (!allowedHosts.length || !incomingHost) {
+    logger.warn("login domain check skipped", {
+      allowedHostsCount: allowedHosts.length,
+      incomingHost
+    });
+    return;
+  }
+  if (!allowedHosts.includes(incomingHost)) {
+    logger.warn("login domain rejected", {
+      incomingHost,
+      allowedHosts
+    });
     throw new Error("Please use your organization login URL");
   }
 };

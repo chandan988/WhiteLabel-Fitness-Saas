@@ -1,48 +1,237 @@
-import { DailyActivity } from "../models/DailyActivity.js";
-import { StepsLog } from "../models/StepsLog.js";
-import { WeightLog } from "../models/WeightLog.js";
-import { NutritionLog } from "../models/NutritionLog.js";
+import { StepsEntry } from "../models/StepsEntry.js";
+import { FoodLog } from "../models/FoodLog.js";
+import { WeightEntry } from "../models/WeightEntry.js";
+import { WaterEntry } from "../models/WaterEntry.js";
+import { SleepEntry } from "../models/SleepEntry.js";
+import { DailyWorkout } from "../models/DailyWorkout.js";
+import { User } from "../models/User.js";
 import { logger } from "../utils/logger.js";
+
+const getTenantUserIds = async (tenantId) => {
+  const users = await User.find({
+    tenantId,
+    role: { $in: ["client", "consumer"] }
+  })
+    .select("_id")
+    .lean();
+  return users.map((user) => user._id);
+};
+
+const toDateKey = (date) => date.toISOString().slice(0, 10);
 
 export const getDashboardSummary = async ({ tenantId }) => {
   logger.info("dashboardService.getDashboardSummary", { tenantId });
+  const userIds = await getTenantUserIds(tenantId);
+  if (!userIds.length) {
+    return { today: {}, totals: {} };
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayKey = toDateKey(today);
 
-  const summary = await DailyActivity.aggregate([
-    { $match: { tenantId } },
-    {
-      $group: {
-        _id: null,
-        caloriesBurned: { $sum: "$caloriesBurned" },
-        steps: { $sum: "$steps" },
-        caloriesIntake: { $sum: "$caloriesIntake" },
-        waterIntake: { $sum: "$waterIntake" },
-        sleepHours: { $avg: "$sleepHours" },
-        workoutsCompleted: { $sum: "$workoutsCompleted" }
-      }
-    }
-  ]);
+  const weekStart = new Date(today);
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weekKey = toDateKey(weekStart);
 
-  const todayMetrics = await DailyActivity.findOne({
-    tenantId,
-    date: { $gte: today }
-  }).sort({ date: -1 });
+  const [stepsToday, foodToday, waterToday, sleepToday, workoutToday] =
+    await Promise.all([
+      StepsEntry.aggregate([
+        { $match: { userId: { $in: userIds }, date: todayKey } },
+        { $group: { _id: null, value: { $sum: "$totalSteps" } } }
+      ]),
+      FoodLog.aggregate([
+        { $match: { user: { $in: userIds } } },
+        {
+          $addFields: {
+            dateKey: {
+              $ifNull: [
+                "$date",
+                {
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                }
+              ]
+            }
+          }
+        },
+        { $match: { dateKey: todayKey } },
+        {
+          $group: {
+            _id: null,
+            value: { $sum: "$dailyTotals.calories" }
+          }
+        }
+      ]),
+      WaterEntry.aggregate([
+        { $match: { userId: { $in: userIds }, date: { $gte: today, $lt: tomorrow } } },
+        { $group: { _id: null, value: { $sum: "$amount" } } }
+      ]),
+      SleepEntry.aggregate([
+        {
+          $match: {
+            userId: { $in: userIds },
+            $or: [
+              { date: { $gte: today, $lt: tomorrow } },
+              { sleep_time: { $gte: today, $lt: tomorrow } }
+            ]
+          }
+        },
+        {
+          $project: {
+            hours: {
+              $divide: [
+                { $subtract: ["$wake_time", "$sleep_time"] },
+                1000 * 60 * 60
+              ]
+            }
+          }
+        },
+        { $group: { _id: null, value: { $avg: "$hours" } } }
+      ]),
+      DailyWorkout.aggregate([
+        {
+          $match: {
+            userId: { $in: userIds },
+            $or: [
+              { date: todayKey },
+              { dateObj: { $gte: today, $lt: tomorrow } }
+            ]
+          }
+        },
+        {
+          $project: {
+            calories: {
+              $ifNull: ["$dailyStats.calories", "$dailyStats.caloriesBurned"]
+            },
+            sessions: { $size: { $ifNull: ["$workouts", []] } }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            caloriesBurned: { $sum: "$calories" },
+            workoutsCompleted: { $sum: "$sessions" }
+          }
+        }
+      ])
+    ]);
+
+  const [stepsWeek, foodWeek, waterWeek, sleepWeek, workoutWeek] =
+    await Promise.all([
+      StepsEntry.aggregate([
+        { $match: { userId: { $in: userIds }, date: { $gte: weekKey } } },
+        { $group: { _id: null, value: { $sum: "$totalSteps" } } }
+      ]),
+      FoodLog.aggregate([
+        { $match: { user: { $in: userIds } } },
+        {
+          $addFields: {
+            dateKey: {
+              $ifNull: [
+                "$date",
+                {
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                }
+              ]
+            }
+          }
+        },
+        { $match: { dateKey: { $gte: weekKey } } },
+        {
+          $group: {
+            _id: null,
+            value: { $sum: "$dailyTotals.calories" }
+          }
+        }
+      ]),
+      WaterEntry.aggregate([
+        { $match: { userId: { $in: userIds }, date: { $gte: weekStart, $lt: tomorrow } } },
+        { $group: { _id: null, value: { $sum: "$amount" } } }
+      ]),
+      SleepEntry.aggregate([
+        {
+          $match: {
+            userId: { $in: userIds },
+            $or: [
+              { date: { $gte: weekStart, $lt: tomorrow } },
+              { sleep_time: { $gte: weekStart, $lt: tomorrow } }
+            ]
+          }
+        },
+        {
+          $project: {
+            hours: {
+              $divide: [
+                { $subtract: ["$wake_time", "$sleep_time"] },
+                1000 * 60 * 60
+              ]
+            }
+          }
+        },
+        { $group: { _id: null, value: { $avg: "$hours" } } }
+      ]),
+      DailyWorkout.aggregate([
+        {
+          $match: {
+            userId: { $in: userIds },
+            $or: [
+              { dateObj: { $gte: weekStart, $lt: tomorrow } },
+              { date: { $gte: weekKey } }
+            ]
+          }
+        },
+        {
+          $project: {
+            calories: {
+              $ifNull: ["$dailyStats.calories", "$dailyStats.caloriesBurned"]
+            },
+            sessions: { $size: { $ifNull: ["$workouts", []] } }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            caloriesBurned: { $sum: "$calories" },
+            workoutsCompleted: { $sum: "$sessions" }
+          }
+        }
+      ])
+    ]);
 
   return {
-    today: todayMetrics || {},
-    totals: summary[0] || {}
+    today: {
+      caloriesBurned: workoutToday[0]?.caloriesBurned || 0,
+      steps: stepsToday[0]?.value || 0,
+      caloriesIntake: foodToday[0]?.value || 0,
+      waterIntake: waterToday[0]?.value || 0,
+      sleepHours: Math.round((sleepToday[0]?.value || 0) * 10) / 10,
+      workoutsCompleted: workoutToday[0]?.workoutsCompleted || 0
+    },
+    totals: {
+      caloriesBurned: workoutWeek[0]?.caloriesBurned || 0,
+      steps: stepsWeek[0]?.value || 0,
+      caloriesIntake: foodWeek[0]?.value || 0,
+      waterIntake: waterWeek[0]?.value || 0,
+      sleepHours: Math.round((sleepWeek[0]?.value || 0) * 10) / 10,
+      workoutsCompleted: workoutWeek[0]?.workoutsCompleted || 0
+    }
   };
 };
 
 export const getStepsTrend = async ({ tenantId }) => {
   logger.info("dashboardService.getStepsTrend", { tenantId });
-  return StepsLog.aggregate([
-    { $match: { tenantId } },
+  const userIds = await getTenantUserIds(tenantId);
+  if (!userIds.length) {
+    return [];
+  }
+  return StepsEntry.aggregate([
+    { $match: { userId: { $in: userIds } } },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-        value: { $sum: "$steps" }
+        _id: "$date",
+        value: { $sum: "$totalSteps" }
       }
     },
     { $sort: { _id: 1 } }
@@ -51,12 +240,28 @@ export const getStepsTrend = async ({ tenantId }) => {
 
 export const getCaloriesTrend = async ({ tenantId }) => {
   logger.info("dashboardService.getCaloriesTrend", { tenantId });
-  return DailyActivity.aggregate([
-    { $match: { tenantId } },
+  const userIds = await getTenantUserIds(tenantId);
+  if (!userIds.length) {
+    return [];
+  }
+  return FoodLog.aggregate([
+    { $match: { user: { $in: userIds } } },
+    {
+      $addFields: {
+        dateKey: {
+          $ifNull: [
+            "$date",
+            {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            }
+          ]
+        }
+      }
+    },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-        value: { $avg: "$caloriesIntake" }
+        _id: "$dateKey",
+        value: { $sum: "$dailyTotals.calories" }
       }
     },
     { $sort: { _id: 1 } }
@@ -65,8 +270,12 @@ export const getCaloriesTrend = async ({ tenantId }) => {
 
 export const getWeightTrend = async ({ tenantId }) => {
   logger.info("dashboardService.getWeightTrend", { tenantId });
-  return WeightLog.aggregate([
-    { $match: { tenantId } },
+  const userIds = await getTenantUserIds(tenantId);
+  if (!userIds.length) {
+    return [];
+  }
+  return WeightEntry.aggregate([
+    { $match: { userId: { $in: userIds } } },
     {
       $group: {
         _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
@@ -79,12 +288,28 @@ export const getWeightTrend = async ({ tenantId }) => {
 
 export const getNutritionOverview = async ({ tenantId }) => {
   logger.info("dashboardService.getNutritionOverview", { tenantId });
-  return NutritionLog.aggregate([
-    { $match: { tenantId } },
+  const userIds = await getTenantUserIds(tenantId);
+  if (!userIds.length) {
+    return [];
+  }
+  return FoodLog.aggregate([
+    { $match: { user: { $in: userIds } } },
+    {
+      $addFields: {
+        dateKey: {
+          $ifNull: [
+            "$date",
+            {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            }
+          ]
+        }
+      }
+    },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-        calories: { $sum: "$totalCalories" },
+        _id: "$dateKey",
+        calories: { $sum: "$dailyTotals.calories" },
         meals: { $sum: { $size: "$meals" } }
       }
     },
