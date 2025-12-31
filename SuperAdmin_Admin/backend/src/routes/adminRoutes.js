@@ -6,6 +6,13 @@ import {
   resetCoachPasswordController,
   updateCoachController
 } from "../controllers/adminController.js";
+import {
+  createOverride,
+  getDailyContentAdmin,
+  listOverridesAdmin,
+  removeOverride,
+  updateOverride
+} from "../controllers/adminDailyContentController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
@@ -18,5 +25,11 @@ router.get("/coaches", listCoachesController);
 router.post("/coaches/:id/reset-password", resetCoachPasswordController);
 router.patch("/coaches/:id", updateCoachController);
 router.delete("/coaches/:id", deleteCoachController);
+
+router.get("/daily-content", getDailyContentAdmin);
+router.get("/daily-content/overrides", listOverridesAdmin);
+router.post("/daily-content/override", createOverride);
+router.patch("/daily-content/:id", updateOverride);
+router.delete("/daily-content/:id", removeOverride);
 
 export default router;

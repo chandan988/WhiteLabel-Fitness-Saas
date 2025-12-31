@@ -33,4 +33,16 @@ export const getClients = () => api.get("/clients");
 export const postClient = (payload) => api.post("/clients", payload);
 export const patchClient = (id, payload) => api.patch(`/clients/${id}`, payload);
 
+export const getDailyContent = (params) => api.get("/content/daily", { params });
+export const getAdminDailyContent = (params) =>
+  api.get("/admin/daily-content", { params });
+export const listDailyOverrides = () =>
+  api.get("/admin/daily-content/overrides");
+export const createDailyOverride = (payload) =>
+  api.post("/admin/daily-content/override", payload);
+export const updateDailyOverride = (id, payload) =>
+  api.patch(`/admin/daily-content/${id}`, payload);
+export const deleteDailyOverride = (id) =>
+  api.delete(`/admin/daily-content/${id}`);
+
 export default api;

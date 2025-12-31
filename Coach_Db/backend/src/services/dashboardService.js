@@ -47,12 +47,10 @@ export const getDashboardSummary = async ({ tenantId }) => {
         {
           $addFields: {
             dateKey: {
-              $ifNull: [
-                "$date",
-                {
-                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-                }
-              ]
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: { $ifNull: ["$date", "$createdAt"] }
+              }
             }
           }
         },
@@ -129,12 +127,10 @@ export const getDashboardSummary = async ({ tenantId }) => {
         {
           $addFields: {
             dateKey: {
-              $ifNull: [
-                "$date",
-                {
-                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-                }
-              ]
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: { $ifNull: ["$date", "$createdAt"] }
+              }
             }
           }
         },
@@ -249,12 +245,10 @@ export const getCaloriesTrend = async ({ tenantId }) => {
     {
       $addFields: {
         dateKey: {
-          $ifNull: [
-            "$date",
-            {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-            }
-          ]
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: { $ifNull: ["$date", "$createdAt"] }
+          }
         }
       }
     },
@@ -297,12 +291,10 @@ export const getNutritionOverview = async ({ tenantId }) => {
     {
       $addFields: {
         dateKey: {
-          $ifNull: [
-            "$date",
-            {
-              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-            }
-          ]
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: { $ifNull: ["$date", "$createdAt"] }
+          }
         }
       }
     },

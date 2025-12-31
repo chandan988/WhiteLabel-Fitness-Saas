@@ -22,7 +22,7 @@ const AdminDashboard = () => {
       </header>
 
       <main className="px-10 py-8 space-y-6">
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <Link
             to="/admin/coaches"
             className="bg-white rounded-3xl shadow-card p-6 hover:shadow-lg transition"
@@ -32,6 +32,17 @@ const AdminDashboard = () => {
             </h2>
             <p className="text-gray-500 mt-2">
               Create white-label apps, reset passwords, edit branding.
+            </p>
+          </Link>
+          <Link
+            to="/admin/daily-content"
+            className="bg-white rounded-3xl shadow-card p-6 hover:shadow-lg transition"
+          >
+            <h2 className="text-lg font-semibold text-gray-900">
+              Daily Tips and Quotes
+            </h2>
+            <p className="text-gray-500 mt-2">
+              Manage tips and quotes shown in the mobile app.
             </p>
           </Link>
           <div className="bg-white rounded-3xl shadow-card p-6">

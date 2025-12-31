@@ -3,6 +3,7 @@ import AdminLogin from "./pages/admin/Login.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import Coaches from "./pages/admin/Coaches.jsx";
 import CreateCoach from "./pages/admin/CreateCoach.jsx";
+import DailyContent from "./pages/admin/DailyContent.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 
 const PrivateRoute = ({ children, allowedRole }) => {
@@ -36,6 +37,14 @@ const AppRoutes = () => (
       element={
         <PrivateRoute allowedRole="superadmin">
           <CreateCoach />
+        </PrivateRoute>
+      }
+    />
+    <Route
+      path="/admin/daily-content"
+      element={
+        <PrivateRoute allowedRole="superadmin">
+          <DailyContent />
         </PrivateRoute>
       }
     />

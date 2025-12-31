@@ -188,6 +188,27 @@ const getWeekStartString = (value) => {
   return start.toISOString().slice(0, 10);
 };
 
+const parseDateInput = (value) => {
+  if (!value) return new Date();
+  const parts = value.split("-").map(Number);
+  if (parts.length === 3 && parts.every((part) => !Number.isNaN(part))) {
+    const [year, month, day] = parts;
+    return new Date(year, month - 1, day);
+  }
+  return new Date(value);
+};
+
+const toDateInputValue = (value) => {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const groupItemsByDay = (items = []) => {
   const map = new Map();
   items.forEach((item) => {
@@ -252,79 +273,36 @@ const ClientDetail = () => {
   const [workoutQuery, setWorkoutQuery] = useState("");
   const [workoutResults, setWorkoutResults] = useState([]);
   const [selectedWorkoutIds, setSelectedWorkoutIds] = useState([]);
-  const [workoutDay, setWorkoutDay] = useState(new Date().getDay());
-  const [applyWorkoutsToWeek, setApplyWorkoutsToWeek] = useState(false);
   const [foodQuery, setFoodQuery] = useState("");
   const [foodResults, setFoodResults] = useState([]);
   const [selectedFoodIds, setSelectedFoodIds] = useState([]);
   const [mealType, setMealType] = useState("breakfast");
-  const [mealDay, setMealDay] = useState(new Date().getDay());
-  const [applyMealsToWeek, setApplyMealsToWeek] = useState(false);
-  const [weekStart, setWeekStart] = useState(getWeekStartString());
   const [showMealPlanner, setShowMealPlanner] = useState(false);
   const [showWorkoutPlanner, setShowWorkoutPlanner] = useState(false);
-  const [selectedMealCell, setSelectedMealCell] = useState(null);
-  const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(null);
+  const [mealPlanDate, setMealPlanDate] = useState(toDateInputValue());
+  const [workoutPlanDate, setWorkoutPlanDate] = useState(toDateInputValue());
   const [workoutNotes, setWorkoutNotes] = useState("");
   const [workoutDuration, setWorkoutDuration] = useState("");
   const [mealNotes, setMealNotes] = useState("");
   const [actionError, setActionError] = useState("");
-
-  useEffect(() => {
-    const planWeek =
-      client?.mealPlan?.weekStart || client?.workoutPlan?.weekStart;
-    if (planWeek) {
-      const parsed = new Date(planWeek);
-      if (!Number.isNaN(parsed.getTime())) {
-        setWeekStart(parsed.toISOString().slice(0, 10));
-      }
-    }
-  }, [client?.mealPlan?.weekStart, client?.workoutPlan?.weekStart]);
 
   const updateChartVariant = (key, next) => {
     setChartVariants((prev) => ({ ...prev, [key]: next }));
   };
 
   const openMealPlanner = () => {
-    const today = new Date().getDay();
-    setSelectedMealCell({ day: today, mealType });
-    setMealDay(today);
+    if (!mealPlanDate) {
+      setMealPlanDate(toDateInputValue());
+    }
     setShowMealPlanner(true);
   };
 
   const openWorkoutPlanner = () => {
-    const today = new Date().getDay();
-    setSelectedWorkoutDay(today);
-    setWorkoutDay(today);
+    if (!workoutPlanDate) {
+      setWorkoutPlanDate(toDateInputValue());
+    }
     setShowWorkoutPlanner(true);
   };
-
-  const weekDates = useMemo(() => {
-    const base = weekStart
-      ? new Date(`${weekStart}T00:00:00`)
-      : new Date();
-    if (Number.isNaN(base.getTime())) {
-      return dayLabels.map((label, index) => ({
-        label,
-        day: index,
-        date: null,
-        shortLabel: label.slice(0, 3)
-      }));
-    }
-    return dayLabels.map((label, index) => {
-      const date = new Date(base);
-      date.setDate(base.getDate() + index);
-      return {
-        label,
-        day: index,
-        date,
-        shortLabel: date.toLocaleDateString("en-US", {
-          weekday: "short",
-          day: "numeric"
-        })
-      };
-    });
-  }, [weekStart]);
 
   const rangeDays = period === "month" ? 30 : 7;
   const rangeStart = useMemo(() => {
@@ -537,14 +515,16 @@ const ClientDetail = () => {
   const handleAssignWorkout = async (workoutId) => {
     setActionError("");
     try {
+      const workoutDate = parseDateInput(workoutPlanDate);
+      const workoutWeekStart = getWeekStartString(workoutDate);
       await assignWorkout({
         workoutId,
         workoutIds: workoutId ? undefined : selectedWorkoutIds,
         duration: workoutDuration,
         notes: workoutNotes,
-        weekStart,
-        dayOfWeek: workoutDay,
-        applyToWeek: applyWorkoutsToWeek
+        weekStart: workoutWeekStart,
+        dayOfWeek: workoutDate.getDay(),
+        applyToWeek: false
       });
       setSelectedWorkoutIds([]);
     } catch (err) {
@@ -555,14 +535,16 @@ const ClientDetail = () => {
   const handleAssignMeal = async (foodId) => {
     setActionError("");
     try {
+      const mealDateValue = parseDateInput(mealPlanDate);
+      const mealWeekStart = getWeekStartString(mealDateValue);
       await assignMeal({
         foodId,
         foodIds: foodId ? undefined : selectedFoodIds,
         mealType,
         notes: mealNotes,
-        weekStart,
-        dayOfWeek: mealDay,
-        applyToWeek: applyMealsToWeek
+        weekStart: mealWeekStart,
+        dayOfWeek: mealDateValue.getDay(),
+        applyToWeek: false
       });
       setSelectedFoodIds([]);
     } catch (err) {
@@ -721,23 +703,34 @@ const ClientDetail = () => {
     );
   }
 
-  const normalizedWeekStart = weekStart || getWeekStartString();
   const planWeekKey = (value) => {
     if (!value) return null;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return null;
     return parsed.toISOString().slice(0, 10);
   };
+  const mealPlanDateValue = parseDateInput(mealPlanDate);
+  const workoutPlanDateValue = parseDateInput(workoutPlanDate);
   const mealPlanWeekKey = planWeekKey(client.mealPlan?.weekStart);
   const workoutPlanWeekKey = planWeekKey(client.workoutPlan?.weekStart);
+  const selectedMealWeekKey = planWeekKey(
+    getWeekStartString(mealPlanDateValue)
+  );
+  const selectedWorkoutWeekKey = planWeekKey(
+    getWeekStartString(workoutPlanDateValue)
+  );
   const visibleMealItems =
-    mealPlanWeekKey && mealPlanWeekKey !== normalizedWeekStart
-      ? []
-      : client.mealPlan?.items || [];
+    mealPlanWeekKey && selectedMealWeekKey && mealPlanWeekKey === selectedMealWeekKey
+      ? client.mealPlan?.items || []
+      : [];
   const visibleWorkoutItems =
-    workoutPlanWeekKey && workoutPlanWeekKey !== normalizedWeekStart
-      ? []
-      : client.workoutPlan?.items || [];
+    workoutPlanWeekKey &&
+    selectedWorkoutWeekKey &&
+    workoutPlanWeekKey === selectedWorkoutWeekKey
+      ? client.workoutPlan?.items || []
+      : [];
+  const mealDayIndex = mealPlanDateValue.getDay();
+  const workoutDayIndex = workoutPlanDateValue.getDay();
   const getMealItemsForCell = (dayIndex, type) =>
     visibleMealItems
       .filter((item) => {
@@ -759,6 +752,21 @@ const ClientDetail = () => {
         return day === dayIndex;
       })
       .sort((a, b) => new Date(a.assignedAt) - new Date(b.assignedAt));
+  const mealItemsForSelectedDate = mealPlannerTypes.flatMap((type) =>
+    getMealItemsForCell(mealDayIndex, type)
+  );
+  const mealGroups = mealItemsForSelectedDate.reduce((acc, item) => {
+    const key = item.mealType || "other";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+  const mealGroupKeys = Object.keys(mealGroups).sort(
+    (a, b) => (mealTypeOrder[a] || 99) - (mealTypeOrder[b] || 99)
+  );
+  const workoutItemsForSelectedDate = getWorkoutItemsForDay(workoutDayIndex);
+  const mealDateLabel = formatShortDate(mealPlanDateValue);
+  const workoutDateLabel = formatShortDate(workoutPlanDateValue);
 
   return (
     <DashboardLayout>
@@ -1050,27 +1058,27 @@ const ClientDetail = () => {
           <div className="bg-brand-card rounded-3xl shadow-card p-6 space-y-4">
             <div>
               <h4 className="text-sm font-semibold text-brand-ink">
-                Weekly Plan Builder
+                Daily Plan Builder
               </h4>
               <p className="text-sm text-brand-muted">
-                Assign a full week of meals or workouts using the planner.
+                Assign meals or workouts for a specific date.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <PrimaryButton
                   className="w-auto px-5"
                   onClick={openMealPlanner}
                 >
-                  Open Weekly Meal Planner
+                  Open Meal Planner
                 </PrimaryButton>
                 <PrimaryButton
                   className="w-auto px-5"
                   onClick={openWorkoutPlanner}
                 >
-                  Open Weekly Workout Planner
+                  Open Workout Planner
                 </PrimaryButton>
               </div>
               <p className="text-xs text-brand-muted mt-3">
-                Pick a week start, select a cell, then search and assign items.
+                Pick a date, then search and assign items.
               </p>
             </div>
             {actionError && (
@@ -1085,105 +1093,74 @@ const ClientDetail = () => {
                   Assigned Meals
                 </h4>
                 <p className="text-xs text-brand-muted">
-                  Week of {formatShortDate(weekDates[0]?.date || weekStart)}
+                  {dayLabels[mealDayIndex]} · {mealDateLabel}
                 </p>
               </div>
-              <button
-                type="button"
-                className="text-xs font-semibold text-brand-primary"
-                onClick={openMealPlanner}
-              >
-                Plan Meals
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={mealPlanDate}
+                  onChange={(event) => setMealPlanDate(event.target.value)}
+                  className="px-3 py-2 rounded-xl border border-brand-border text-xs"
+                />
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-brand-primary"
+                  onClick={openMealPlanner}
+                >
+                  Plan Meals
+                </button>
+              </div>
             </div>
-            <div className="space-y-3">
-              {weekDates.map((day) => {
-                const items = getMealItemsForCell(day.day, "breakfast")
-                  .concat(getMealItemsForCell(day.day, "morning_snack"))
-                  .concat(getMealItemsForCell(day.day, "lunch"))
-                  .concat(getMealItemsForCell(day.day, "evening_snack"))
-                  .concat(getMealItemsForCell(day.day, "dinner"))
-                  .concat(getMealItemsForCell(day.day, "snacks"))
-                  .concat(getMealItemsForCell(day.day, "other"));
-                const grouped = items.reduce((acc, item) => {
-                  const key = item.mealType || "other";
-                  if (!acc[key]) acc[key] = [];
-                  acc[key].push(item);
-                  return acc;
-                }, {});
-                const groupKeys = Object.keys(grouped).sort(
-                  (a, b) =>
-                    (mealTypeOrder[a] || 99) - (mealTypeOrder[b] || 99)
-                );
-
-                return (
-                  <div
-                    key={day.day}
-                    className="border border-brand-border rounded-2xl p-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-brand-ink">
-                        {day.label}
-                      </span>
-                      <span className="text-xs text-brand-muted">
-                        {day.date ? formatShortDate(day.date) : "-"}
-                      </span>
-                    </div>
-                    {groupKeys.length ? (
-                      <div className="mt-3 space-y-3">
-                        {groupKeys.map((mealKey) => (
-                          <div key={mealKey} className="space-y-2">
-                            <p className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                              {mealTypeLabels[mealKey] || "Other"}
-                            </p>
-                            <div className="space-y-2">
-                              {grouped[mealKey].map((item) => (
-                                <div
-                                  key={item._id}
-                                  className="flex items-center justify-between text-xs"
-                                >
-                                  <span className="text-brand-ink">
-                                    {item.foodName || "Meal"}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
-                                        item.status === "completed"
-                                          ? "bg-emerald-100 text-emerald-700"
-                                          : "bg-amber-100 text-amber-700"
-                                      }`}
-                                    >
-                                      {item.status === "completed"
-                                        ? "Completed"
-                                        : "Assigned"}
-                                    </span>
-                                    {item.status !== "completed" && (
-                                      <button
-                                        type="button"
-                                        className="text-[10px] font-semibold text-brand-primary"
-                                        onClick={() =>
-                                          handleMealCompletion(item._id)
-                                        }
-                                        disabled={assigning}
-                                      >
-                                        Mark as Eaten
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+            <div className="border border-brand-border rounded-2xl p-4 space-y-3">
+              {mealGroupKeys.length ? (
+                mealGroupKeys.map((mealKey) => (
+                  <div key={mealKey} className="space-y-2">
+                    <p className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
+                      {mealTypeLabels[mealKey] || "Other"}
+                    </p>
+                    <div className="space-y-2">
+                      {mealGroups[mealKey].map((item) => (
+                        <div
+                          key={item._id}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-brand-ink">
+                            {item.foodName || "Meal"}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
+                                item.status === "completed"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              {item.status === "completed"
+                                ? "Completed"
+                                : "Assigned"}
+                            </span>
+                            {item.status !== "completed" && (
+                              <button
+                                type="button"
+                                className="text-[10px] font-semibold text-brand-primary"
+                                onClick={() => handleMealCompletion(item._id)}
+                                disabled={assigning}
+                              >
+                                Mark as Eaten
+                              </button>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-brand-muted mt-2">
-                        No meals assigned.
-                      </p>
-                    )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                );
-              })}
+                ))
+              ) : (
+                <p className="text-xs text-brand-muted">
+                  No meals assigned for this date.
+                </p>
+              )}
             </div>
           </div>
 
@@ -1194,79 +1171,63 @@ const ClientDetail = () => {
                   Assigned Workouts
                 </h4>
                 <p className="text-xs text-brand-muted">
-                  Week of {formatShortDate(weekDates[0]?.date || weekStart)}
+                  {dayLabels[workoutDayIndex]} · {workoutDateLabel}
                 </p>
               </div>
-              <button
-                type="button"
-                className="text-xs font-semibold text-brand-primary"
-                onClick={openWorkoutPlanner}
-              >
-                Plan Workouts
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={workoutPlanDate}
+                  onChange={(event) => setWorkoutPlanDate(event.target.value)}
+                  className="px-3 py-2 rounded-xl border border-brand-border text-xs"
+                />
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-brand-primary"
+                  onClick={openWorkoutPlanner}
+                >
+                  Plan Workouts
+                </button>
+              </div>
             </div>
-            <div className="space-y-3">
-              {weekDates.map((day) => {
-                const items = getWorkoutItemsForDay(day.day);
-                return (
+            <div className="border border-brand-border rounded-2xl p-4 space-y-2">
+              {workoutItemsForSelectedDate.length ? (
+                workoutItemsForSelectedDate.map((item) => (
                   <div
-                    key={day.day}
-                    className="border border-brand-border rounded-2xl p-3"
+                    key={item._id}
+                    className="flex items-center justify-between text-xs"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-brand-ink">
-                        {day.label}
+                    <span className="text-brand-ink">
+                      {item.workoutName || item.name || "Workout"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
+                          item.status === "completed"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {item.status === "completed" ? "Completed" : "Assigned"}
                       </span>
-                      <span className="text-xs text-brand-muted">
-                        {day.date ? formatShortDate(day.date) : "-"}
-                      </span>
+                      {item.status !== "completed" && (
+                        <button
+                          type="button"
+                          className="text-[10px] font-semibold text-brand-primary"
+                          onClick={() => handleWorkoutCompletion(item._id)}
+                          disabled={assigning}
+                        >
+                          Mark as Done
+                        </button>
+                      )}
                     </div>
-                    {items.length ? (
-                      <div className="mt-3 space-y-2">
-                        {items.map((item) => (
-                          <div
-                            key={item._id}
-                            className="flex items-center justify-between text-xs"
-                          >
-                            <span className="text-brand-ink">
-                              {item.workoutName || item.name || "Workout"}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
-                                  item.status === "completed"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
-                              >
-                                {item.status === "completed"
-                                  ? "Completed"
-                                  : "Assigned"}
-                              </span>
-                              {item.status !== "completed" && (
-                                <button
-                                  type="button"
-                                  className="text-[10px] font-semibold text-brand-primary"
-                                  onClick={() =>
-                                    handleWorkoutCompletion(item._id)
-                                  }
-                                  disabled={assigning}
-                                >
-                                  Mark as Done
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-brand-muted mt-2">
-                        No workouts assigned.
-                      </p>
-                    )}
                   </div>
-                );
-              })}
+                ))
+              ) : (
+                <p className="text-xs text-brand-muted">
+                  No workouts assigned for this date.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1278,10 +1239,10 @@ const ClientDetail = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-semibold text-brand-ink">
-                  Weekly Meal Planner
+                  Daily Meal Planner
                 </h3>
                 <p className="text-sm text-brand-muted">
-                  Assign meals across the week for this client.
+                  Assign meals for a specific date.
                 </p>
               </div>
               <button
@@ -1297,119 +1258,77 @@ const ClientDetail = () => {
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="text-sm text-brand-muted">
-                    Week starting
+                    Plan date
                   </label>
                   <input
                     type="date"
-                    value={weekStart}
-                    onChange={(event) => setWeekStart(event.target.value)}
+                    value={mealPlanDate}
+                    onChange={(event) => setMealPlanDate(event.target.value)}
                     className="px-3 py-2 rounded-xl border border-brand-border text-sm"
                   />
-                  <label className="flex items-center gap-2 text-sm text-brand-muted">
-                    <input
-                      type="checkbox"
-                      checked={applyMealsToWeek}
-                      onChange={(event) =>
-                        setApplyMealsToWeek(event.target.checked)
-                      }
-                    />
-                    Apply to every day
-                  </label>
+                  <span className="text-xs text-brand-muted">
+                    {dayLabels[mealDayIndex]}
+                  </span>
                 </div>
 
-                <div className="border border-brand-border rounded-2xl overflow-auto">
-                  <table className="min-w-[900px] w-full text-xs">
-                    <thead className="bg-brand-secondary/10 text-brand-muted">
-                      <tr>
-                        <th className="p-3 text-left">Meal</th>
-                        {weekDates.map((day) => (
-                          <th key={day.day} className="p-3 text-left">
-                            <div className="text-sm text-brand-ink">
-                              {day.shortLabel}
-                            </div>
-                            <div className="text-[11px] text-brand-muted">
-                              {day.label}
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mealPlannerTypes.map((mealKey) => (
-                        <tr key={mealKey} className="border-t border-brand-border">
-                          <td className="p-3 font-semibold text-brand-ink">
+                <div className="border border-brand-border rounded-2xl p-4 space-y-3">
+                  {mealPlannerTypes.map((mealKey) => {
+                    const items = getMealItemsForCell(mealDayIndex, mealKey);
+                    const isSelected = mealType === mealKey;
+                    return (
+                      <button
+                        key={mealKey}
+                        type="button"
+                        onClick={() => setMealType(mealKey)}
+                        className={`w-full rounded-2xl border p-3 text-left transition ${
+                          isSelected
+                            ? "border-brand-primary bg-brand-primary/10"
+                            : "border-brand-border"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-brand-ink">
                             {mealTypeLabels[mealKey] || "Other"}
-                          </td>
-                          {weekDates.map((day) => {
-                            const cellItems = getMealItemsForCell(
-                              day.day,
-                              mealKey
-                            );
-                            const isSelected =
-                              selectedMealCell?.day === day.day &&
-                              selectedMealCell?.mealType === mealKey;
-                            return (
-                              <td key={`${mealKey}-${day.day}`} className="p-3">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedMealCell({
-                                      day: day.day,
-                                      mealType: mealKey
-                                    });
-                                    setMealDay(day.day);
-                                    setMealType(mealKey);
-                                  }}
-                                  className={`w-full rounded-xl border text-left p-2 transition ${
-                                    isSelected
-                                      ? "border-brand-primary bg-brand-primary/10"
-                                      : "border-brand-border"
-                                  }`}
-                                >
-                                  {cellItems.length ? (
-                                    <div className="space-y-1">
-                                      {cellItems.slice(0, 2).map((item) => (
-                                        <div
-                                          key={item._id}
-                                          className="text-[11px] text-brand-ink truncate"
-                                        >
-                                          {item.foodName}
-                                        </div>
-                                      ))}
-                                      {cellItems.length > 2 && (
-                                        <div className="text-[10px] text-brand-muted">
-                                          +{cellItems.length - 2} more
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-[11px] text-brand-muted">
-                                      Select to assign
-                                    </span>
-                                  )}
-                                </button>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </span>
+                          <span className="text-xs text-brand-muted">
+                            {items.length} item{items.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        {items.length ? (
+                          <div className="mt-2 space-y-1">
+                            {items.slice(0, 2).map((item) => (
+                              <div
+                                key={item._id}
+                                className="text-xs text-brand-muted truncate"
+                              >
+                                {item.foodName}
+                              </div>
+                            ))}
+                            {items.length > 2 && (
+                              <div className="text-[10px] text-brand-muted">
+                                +{items.length - 2} more
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-xs text-brand-muted">
+                            No meals assigned yet.
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="bg-brand-subtle rounded-2xl p-4 text-sm text-brand-muted">
                   <p className="font-semibold text-brand-ink">
-                    Selected:
-                    {selectedMealCell
-                      ? ` ${dayLabels[selectedMealCell.day]} - ${
-                          mealTypeLabels[selectedMealCell.mealType] || "Other"
-                        }`
-                      : " Choose a cell"}
+                    Selected: {mealTypeLabels[mealType] || "Other"} ·{" "}
+                    {mealDateLabel}
                   </p>
                   <p className="text-xs mt-1">
-                    Assign meals to the selected slot.
+                    Assign meals for this date.
                   </p>
                 </div>
 
@@ -1487,9 +1406,7 @@ const ClientDetail = () => {
                   className="w-full"
                   onClick={() => handleAssignMeal()}
                   disabled={
-                    assigning ||
-                    !selectedFoodIds.length ||
-                    !selectedMealCell
+                    assigning || !selectedFoodIds.length
                   }
                 >
                   {assigning ? "Assigning..." : "Assign Selected Meals"}
@@ -1506,10 +1423,10 @@ const ClientDetail = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-semibold text-brand-ink">
-                  Weekly Workout Planner
+                  Daily Workout Planner
                 </h3>
                 <p className="text-sm text-brand-muted">
-                  Assign workouts across the week for this client.
+                  Assign workouts for a specific date.
                 </p>
               </div>
               <button
@@ -1525,106 +1442,52 @@ const ClientDetail = () => {
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="text-sm text-brand-muted">
-                    Week starting
+                    Plan date
                   </label>
                   <input
                     type="date"
-                    value={weekStart}
-                    onChange={(event) => setWeekStart(event.target.value)}
+                    value={workoutPlanDate}
+                    onChange={(event) => setWorkoutPlanDate(event.target.value)}
                     className="px-3 py-2 rounded-xl border border-brand-border text-sm"
                   />
-                  <label className="flex items-center gap-2 text-sm text-brand-muted">
-                    <input
-                      type="checkbox"
-                      checked={applyWorkoutsToWeek}
-                      onChange={(event) =>
-                        setApplyWorkoutsToWeek(event.target.checked)
-                      }
-                    />
-                    Apply to every day
-                  </label>
+                  <span className="text-xs text-brand-muted">
+                    {dayLabels[workoutDayIndex]}
+                  </span>
                 </div>
 
-                <div className="border border-brand-border rounded-2xl overflow-auto">
-                  <table className="min-w-[900px] w-full text-xs">
-                    <thead className="bg-brand-secondary/10 text-brand-muted">
-                      <tr>
-                        <th className="p-3 text-left">Workouts</th>
-                        {weekDates.map((day) => (
-                          <th key={day.day} className="p-3 text-left">
-                            <div className="text-sm text-brand-ink">
-                              {day.shortLabel}
-                            </div>
-                            <div className="text-[11px] text-brand-muted">
-                              {day.label}
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-t border-brand-border">
-                        <td className="p-3 font-semibold text-brand-ink">
-                          Assigned
-                        </td>
-                        {weekDates.map((day) => {
-                          const cellItems = getWorkoutItemsForDay(day.day);
-                          const isSelected = selectedWorkoutDay === day.day;
-                          return (
-                            <td key={day.day} className="p-3">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedWorkoutDay(day.day);
-                                  setWorkoutDay(day.day);
-                                }}
-                                className={`w-full rounded-xl border text-left p-2 transition ${
-                                  isSelected
-                                    ? "border-brand-primary bg-brand-primary/10"
-                                    : "border-brand-border"
-                                }`}
-                              >
-                                {cellItems.length ? (
-                                  <div className="space-y-1">
-                                    {cellItems.slice(0, 2).map((item) => (
-                                      <div
-                                        key={item._id}
-                                        className="text-[11px] text-brand-ink truncate"
-                                      >
-                                        {item.workoutName || item.name}
-                                      </div>
-                                    ))}
-                                    {cellItems.length > 2 && (
-                                      <div className="text-[10px] text-brand-muted">
-                                        +{cellItems.length - 2} more
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-[11px] text-brand-muted">
-                                    Select to assign
-                                  </span>
-                                )}
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </tbody>
-                  </table>
+                <div className="border border-brand-border rounded-2xl p-4 space-y-2">
+                  {workoutItemsForSelectedDate.length ? (
+                    workoutItemsForSelectedDate.map((item) => (
+                      <div key={item._id} className="flex items-center justify-between text-xs">
+                        <span className="text-brand-ink">
+                          {item.workoutName || item.name}
+                        </span>
+                        <span
+                          className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
+                            item.status === "completed"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {item.status === "completed" ? "Completed" : "Assigned"}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-brand-muted">
+                      No workouts assigned for this date.
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="bg-brand-subtle rounded-2xl p-4 text-sm text-brand-muted">
                   <p className="font-semibold text-brand-ink">
-                    Selected:
-                    {Number.isFinite(selectedWorkoutDay)
-                      ? ` ${dayLabels[selectedWorkoutDay]}`
-                      : " Choose a day"}
+                    Selected: {workoutDateLabel}
                   </p>
                   <p className="text-xs mt-1">
-                    Assign workouts to the selected day.
+                    Assign workouts for this date.
                   </p>
                 </div>
 
@@ -1711,9 +1574,7 @@ const ClientDetail = () => {
                   className="w-full"
                   onClick={() => handleAssignWorkout()}
                   disabled={
-                    assigning ||
-                    !selectedWorkoutIds.length ||
-                    selectedWorkoutDay === null
+                    assigning || !selectedWorkoutIds.length
                   }
                 >
                   {assigning ? "Assigning..." : "Assign Selected Workouts"}
