@@ -185,7 +185,7 @@ const getWeekStartString = (value) => {
   const start = new Date(date);
   start.setDate(start.getDate() - day);
   start.setHours(0, 0, 0, 0);
-  return start.toISOString().slice(0, 10);
+  return toDateInputValue(start);
 };
 
 const parseDateInput = (value) => {
@@ -707,7 +707,7 @@ const ClientDetail = () => {
     if (!value) return null;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toISOString().slice(0, 10);
+    return toDateInputValue(parsed);
   };
   const mealPlanDateValue = parseDateInput(mealPlanDate);
   const workoutPlanDateValue = parseDateInput(workoutPlanDate);
