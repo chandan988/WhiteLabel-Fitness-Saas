@@ -17,7 +17,14 @@ const normalizeBranding = (branding = {}) => {
   return normalized;
 };
 
-export const createCoach = async ({ firstName, lastName, email, branding, profile }) => {
+export const createCoach = async ({
+  firstName,
+  lastName,
+  email,
+  branding,
+  profile,
+  domain
+}) => {
   const { password } = generateCoachCredentials();
   const coach = await User.create({
     firstName,
@@ -39,6 +46,7 @@ export const createCoach = async ({ firstName, lastName, email, branding, profil
     packageName,
     apiKey,
     owner: coach._id,
+    domain: domain || undefined,
     branding: normalizeBranding(branding),
     profile
   });
@@ -78,12 +86,13 @@ export const updateCoach = async (coachId, updates) => {
   }
   await coach.save();
 
-  if (updates.branding || updates.profile) {
+  if (updates.branding || updates.profile || updates.domain) {
     await Tenant.findByIdAndUpdate(
       coach.tenantId,
       {
         ...(updates.branding ? { branding: normalizeBranding(updates.branding) } : {}),
-        ...(updates.profile ? { profile: updates.profile } : {})
+        ...(updates.profile ? { profile: updates.profile } : {}),
+        ...(updates.domain ? { domain: updates.domain } : {})
       },
       { new: true }
     );

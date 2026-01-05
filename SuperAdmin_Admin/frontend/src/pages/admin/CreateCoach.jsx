@@ -28,6 +28,9 @@ const CreateCoach = () => {
     setSubmitting(true);
     setError("");
     try {
+      const normalizedDomain = values.domain
+        ? values.domain.replace(/^https?:\/\//i, "").replace(/\/+$/, "")
+        : "";
       const brandingPayload = {
         appName: values.appName,
         primaryColor: values.primaryColor,
@@ -43,6 +46,7 @@ const CreateCoach = () => {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
+        domain: normalizedDomain || undefined,
         profile: {
           businessName: values.businessName,
           services: values.services
@@ -57,6 +61,7 @@ const CreateCoach = () => {
       setCreatedCoach({
         email: data.coach.email,
         slug: data.tenant.slug,
+        domain: data.tenant.domain || normalizedDomain || "",
         appName:
           data.tenant?.branding?.appName ||
           brandingPayload.appName ||
@@ -99,10 +104,11 @@ const CreateCoach = () => {
             <p className="font-semibold text-lg">
               Temporary Password: <span className="font-mono">{password}</span>
             </p>
-            <p className="text-sm mt-2 text-emerald-800">
+                                    <p className="text-sm mt-2 text-emerald-800">
               Slug / Login URL:{" "}
               <span className="font-mono">
-                {createdCoach.slug} — https://admin.jeevanshaili.com/{createdCoach.slug}/login
+                {createdCoach.slug} -{" "}
+                https://{createdCoach.domain || "admin.jeevanshaili.com"}/{createdCoach.slug}/login
               </span>
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
@@ -150,6 +156,19 @@ const CreateCoach = () => {
               className="w-full border border-gray-200 rounded-2xl px-4 py-3"
               {...register("businessName")}
             />
+          </div>
+          <div className="col-span-2">
+            <label className="text-sm text-gray-600">
+              Coach Dashboard Domain
+            </label>
+            <input
+              className="w-full border border-gray-200 rounded-2xl px-4 py-3"
+              {...register("domain")}
+              placeholder="coachnamefit.com"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Enter the custom domain the coach purchased (no https://).
+            </p>
           </div>
           <div className="col-span-2">
             <label className="text-sm text-gray-600">Services (comma separated)</label>
@@ -232,3 +251,5 @@ const CreateCoach = () => {
 };
 
 export default CreateCoach;
+
+

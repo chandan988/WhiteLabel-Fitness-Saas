@@ -107,9 +107,13 @@ const Coaches = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-  <p className="text-sm font-semibold text-gray-700">{coach.slug}</p>
-  <p className="text-xs text-gray-400">admin.jeevanshaili.com/{coach.slug}/login</p>
-</td>
+                      <p className="text-sm font-semibold text-gray-700">
+                        {coach.slug}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {(coach.domain || "admin.jeevanshaili.com")}/{coach.slug}/login
+                      </p>
+                    </td>
                     <td className="px-6 py-4 text-xs text-gray-500">
                       {coach.packageName}
                     </td>
