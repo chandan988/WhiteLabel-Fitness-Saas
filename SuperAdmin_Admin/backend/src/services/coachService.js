@@ -105,20 +105,32 @@ export const getCoachStats = async (tenantId) => {
 
 export const deleteCoach = async (coachId) => {
   const coach = await User.findById(coachId);
-  if (!coach || coach.role !== "coach") {
+  if (coach && coach.role === "coach") {
+    const tenant = await Tenant.findById(coach.tenantId);
+    if (tenant) {
+      await Client.deleteMany({ tenantId: tenant._id });
+      await Tenant.findByIdAndDelete(tenant._id);
+    }
+    await User.findByIdAndDelete(coachId);
+    return {
+      coachId,
+      tenantId: tenant?._id,
+      slug: tenant?.slug
+    };
+  }
+
+  const tenant = await Tenant.findById(coachId);
+  if (!tenant) {
     throw new Error("Coach not found");
   }
-
-  const tenant = await Tenant.findById(coach.tenantId);
-  if (tenant) {
-    await Client.deleteMany({ tenantId: tenant._id });
-    await Tenant.findByIdAndDelete(tenant._id);
+  if (tenant.owner) {
+    await User.findByIdAndDelete(tenant.owner);
   }
-
-  await User.findByIdAndDelete(coachId);
+  await Client.deleteMany({ tenantId: tenant._id });
+  await Tenant.findByIdAndDelete(tenant._id);
   return {
-    coachId,
-    tenantId: tenant?._id,
-    slug: tenant?.slug
+    coachId: tenant.owner,
+    tenantId: tenant._id,
+    slug: tenant.slug
   };
 };

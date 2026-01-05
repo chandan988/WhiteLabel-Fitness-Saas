@@ -35,11 +35,11 @@ const Coaches = () => {
     }
   };
 
-  const handleDelete = async (coachId) => {
+  const handleDelete = async (tenantId) => {
     if (!window.confirm("Delete this coach and their tenant data?")) return;
-    setActingId(coachId);
+    setActingId(tenantId);
     try {
-      await deleteCoach(coachId);
+      await deleteCoach(tenantId);
       setMessage("Coach deleted successfully.");
       await fetchCoaches();
     } catch (err) {
@@ -117,16 +117,16 @@ const Coaches = () => {
                       <button
                         onClick={() => handleReset(coach.owner?._id)}
                         className="text-sm font-semibold text-red-500 disabled:opacity-50"
-                        disabled={actingId === coach.owner?._id}
+                        disabled={!coach.owner?._id || actingId === coach.owner?._id}
                       >
                         {actingId === coach.owner?._id ? "Resetting..." : "Reset Password"}
                       </button>
                       <button
-                        onClick={() => handleDelete(coach.owner?._id)}
+                        onClick={() => handleDelete(coach._id)}
                         className="text-sm font-semibold text-gray-500 disabled:opacity-50"
-                        disabled={actingId === coach.owner?._id}
+                        disabled={actingId === coach._id}
                       >
-                        {actingId === coach.owner?._id ? "Deleting..." : "Delete"}
+                        {actingId === coach._id ? "Deleting..." : "Delete"}
                       </button>
                     </td>
                   </tr>
