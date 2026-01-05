@@ -18,21 +18,30 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
-    credentials: true
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With"
+    ]
   })
 );
+
+app.options("*", cors());
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan("dev"));
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-app.use("/auth", authRoutes);
-app.use("/admin", adminRoutes);
-app.use("/coach", coachRoutes);
-app.use("/clients", clientRoutes);
-app.use("/content", contentRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/coach", coachRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/content", contentRoutes);
 
 app.use(errorHandler);
 
