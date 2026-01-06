@@ -1171,7 +1171,7 @@ const ClientDetail = () => {
                   Assigned Workouts
                 </h4>
                 <p className="text-xs text-brand-muted">
-                  {dayLabels[workoutDayIndex]} · {workoutDateLabel}
+                  {dayLabels[workoutDayIndex]} - {workoutDateLabel}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1197,9 +1197,16 @@ const ClientDetail = () => {
                     key={item._id}
                     className="flex items-center justify-between text-xs"
                   >
-                    <span className="text-brand-ink">
-                      {item.workoutName || item.name || "Workout"}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-brand-ink">
+                        {item.workoutName || item.name || "Workout"}
+                      </span>
+                      {item.duration ? (
+                        <span className="text-[10px] text-brand-muted">
+                          {item.duration} min
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-2">
                       <span
                         className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
@@ -1458,10 +1465,20 @@ const ClientDetail = () => {
                 <div className="border border-brand-border rounded-2xl p-4 space-y-2">
                   {workoutItemsForSelectedDate.length ? (
                     workoutItemsForSelectedDate.map((item) => (
-                      <div key={item._id} className="flex items-center justify-between text-xs">
-                        <span className="text-brand-ink">
-                          {item.workoutName || item.name}
-                        </span>
+                      <div
+                        key={item._id}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-brand-ink">
+                            {item.workoutName || item.name}
+                          </span>
+                          {item.duration ? (
+                            <span className="text-[10px] text-brand-muted">
+                              {item.duration} min
+                            </span>
+                          ) : null}
+                        </div>
                         <span
                           className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
                             item.status === "completed"
@@ -2024,5 +2041,7 @@ const ClientDetail = () => {
 };
 
 export default ClientDetail;
+
+
 
 

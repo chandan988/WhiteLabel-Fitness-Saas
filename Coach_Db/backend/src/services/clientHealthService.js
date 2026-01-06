@@ -240,6 +240,7 @@ export const assignWorkoutToClient = async ({
   const targetDays = resolveWeekDays({ dayOfWeek, applyToWeek });
 
   const planItems = [];
+  const normalizedDuration = toNumber(duration);
   workouts.forEach((workout) => {
     targetDays.forEach((day) => {
       planItems.push({
@@ -249,6 +250,7 @@ export const assignWorkoutToClient = async ({
         unit: workout.unit,
         caloriesPerMin: toNumber(workout.caloriesPerMin),
         caloriesPerRep: toNumber(workout.caloriesPerRep),
+        duration: normalizedDuration || null,
         dayOfWeek: day,
         assignedAt: new Date(),
         status: "assigned",
@@ -272,11 +274,20 @@ export const assignWorkoutToClient = async ({
   );
   planItems.forEach((item) => {
     const key = `${item.workoutId}-${item.dayOfWeek ?? "na"}`;
-    if (!uniqueItemsMap.has(key)) {
-      uniqueItemsMap.set(key, item);
+    if (uniqueItemsMap.has(key)) {
+      const existing = uniqueItemsMap.get(key);
+      if (!existing.duration && item.duration) {
+        existing.duration = item.duration;
+      }
+      return;
     }
+    uniqueItemsMap.set(key, item);
   });
   const uniqueItems = Array.from(uniqueItemsMap.values());
+  const totalDuration = uniqueItems.reduce(
+    (sum, item) => sum + (Number(item.duration) || 0),
+    0
+  );
 
   client.workoutPlan = {
     name:
@@ -284,7 +295,8 @@ export const assignWorkoutToClient = async ({
         ? "Custom Plan"
         : uniqueItems[0]?.workoutName || client.workoutPlan?.name,
     duration:
-      toNumber(duration) ||
+      totalDuration ||
+      normalizedDuration ||
       toNumber(workouts[0]?.typicalRepsPerMin) ||
       client.workoutPlan?.duration,
     notes: notes || client.workoutPlan?.notes,

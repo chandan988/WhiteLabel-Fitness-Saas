@@ -83,6 +83,7 @@ const ClientSchema = new mongoose.Schema(
           unit: String,
           caloriesPerMin: Number,
           caloriesPerRep: Number,
+          duration: Number,
           dayOfWeek: { type: Number, min: 0, max: 6 },
           assignedAt: { type: Date, default: Date.now },
           status: {
