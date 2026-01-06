@@ -4,12 +4,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 
 const AdminLogin = () => {
-  const { register, handleSubmit } = useForm({
-    defaultValues: {
-      email: "owner@example.com",
-      password: "Owner@123"
-    }
-  });
+  const { register, handleSubmit } = useForm();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -43,7 +38,7 @@ const AdminLogin = () => {
               className="w-full border border-gray-200 rounded-2xl px-4 py-3 mt-1"
               {...register("password", { required: true })}
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
             />
           </div>
           <button
@@ -59,3 +54,4 @@ const AdminLogin = () => {
 };
 
 export default AdminLogin;
+
