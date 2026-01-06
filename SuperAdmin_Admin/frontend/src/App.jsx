@@ -4,6 +4,8 @@ import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import Coaches from "./pages/admin/Coaches.jsx";
 import CreateCoach from "./pages/admin/CreateCoach.jsx";
 import DailyContent from "./pages/admin/DailyContent.jsx";
+import Workouts from "./pages/admin/Workouts.jsx";
+import Meals from "./pages/admin/Meals.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 
 const PrivateRoute = ({ children, allowedRole }) => {
@@ -45,6 +47,22 @@ const AppRoutes = () => (
       element={
         <PrivateRoute allowedRole="superadmin">
           <DailyContent />
+        </PrivateRoute>
+      }
+    />
+    <Route
+      path="/admin/workouts"
+      element={
+        <PrivateRoute allowedRole="superadmin">
+          <Workouts />
+        </PrivateRoute>
+      }
+    />
+    <Route
+      path="/admin/meals"
+      element={
+        <PrivateRoute allowedRole="superadmin">
+          <Meals />
         </PrivateRoute>
       }
     />

@@ -57,9 +57,9 @@ const Meals = () => {
                   key={food.id}
                   className="border border-brand-border rounded-2xl p-4 flex gap-3"
                 >
-                  {food.foodImage ? (
+                  {food.foodImage || food.food_image || food.imageUrl ? (
                     <img
-                      src={food.foodImage}
+                      src={food.foodImage || food.food_image || food.imageUrl}
                       alt={food.foodName}
                       className="h-14 w-14 rounded-xl object-cover"
                     />
@@ -71,7 +71,7 @@ const Meals = () => {
                       {food.foodName}
                     </p>
                     <p className="text-xs text-brand-muted">
-                      {Math.round(food.energyKcal || 0)} kcal ·{" "}
+                      {Math.round(food.energyKcal || 0)} kcal -{" "}
                       {food.servingsUnit || "serving"}
                     </p>
                   </div>
@@ -91,3 +91,7 @@ const Meals = () => {
 };
 
 export default Meals;
+
+
+
+

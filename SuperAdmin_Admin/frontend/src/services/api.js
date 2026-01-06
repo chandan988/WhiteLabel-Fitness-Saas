@@ -48,4 +48,15 @@ export const updateDailyOverride = (id, payload) =>
 export const deleteDailyOverride = (id) =>
   api.delete(`/admin/daily-content/${id}`);
 
+export const getAdminDashboardSummary = () => api.get("/admin/dashboard/summary");
+export const getAdminStepsTrend = () => api.get("/admin/dashboard/steps");
+export const getAdminCaloriesTrend = () => api.get("/admin/dashboard/calories");
+export const getAdminWeightTrend = () => api.get("/admin/dashboard/weight");
+export const getAdminNutritionOverview = () => api.get("/admin/dashboard/nutrition");
+
+export const listWorkouts = (params) => api.get("/admin/workouts", { params });
+export const createWorkout = (payload) => api.post("/admin/workouts", payload);
+export const listFoods = (params) => api.get("/admin/foods", { params });
+export const createFood = (payload) => api.post("/admin/foods", payload);
+
 export default api;

@@ -13,6 +13,19 @@ import {
   removeOverride,
   updateOverride
 } from "../controllers/adminDailyContentController.js";
+import {
+  getAdminDashboardSummary,
+  getAdminStepsTrend,
+  getAdminCaloriesTrend,
+  getAdminWeightTrend,
+  getAdminNutritionOverview
+} from "../controllers/adminDashboardController.js";
+import {
+  createFoodController,
+  createWorkoutController,
+  listFoodsController,
+  listWorkoutsController
+} from "../controllers/adminCatalogController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
@@ -31,5 +44,16 @@ router.get("/daily-content/overrides", listOverridesAdmin);
 router.post("/daily-content/override", createOverride);
 router.patch("/daily-content/:id", updateOverride);
 router.delete("/daily-content/:id", removeOverride);
+
+router.get("/dashboard/summary", getAdminDashboardSummary);
+router.get("/dashboard/steps", getAdminStepsTrend);
+router.get("/dashboard/calories", getAdminCaloriesTrend);
+router.get("/dashboard/weight", getAdminWeightTrend);
+router.get("/dashboard/nutrition", getAdminNutritionOverview);
+
+router.get("/workouts", listWorkoutsController);
+router.post("/workouts", createWorkoutController);
+router.get("/foods", listFoodsController);
+router.post("/foods", createFoodController);
 
 export default router;
