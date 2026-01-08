@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   addLeadFollowUp as addLeadFollowUpApi,
+  assignPricingPlan as assignPricingPlanApi,
   convertLead as convertLeadApi,
   createLead as createLeadApi,
   getLeads,
@@ -84,6 +85,11 @@ export const useLeads = () => {
     return data.followUps;
   };
 
+  const assignPlan = async ({ userId, planId, endDate }) => {
+    await assignPricingPlanApi({ userId, planId, endDate });
+    await fetchLeads(filters);
+  };
+
   return {
     leads,
     loading,
@@ -95,6 +101,7 @@ export const useLeads = () => {
     addLead,
     editLead,
     convertLead,
-    addFollowUp
+    addFollowUp,
+    assignPlan
   };
 };

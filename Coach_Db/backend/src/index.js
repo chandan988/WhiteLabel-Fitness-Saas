@@ -12,6 +12,7 @@ import brandingRoutes from "./routes/brandingRoutes.js";
 import leadRoutes from "./routes/leadRoutes.js";
 import followUpRoutes from "./routes/followUpRoutes.js";
 import libraryRoutes from "./routes/libraryRoutes.js";
+import pricingRoutes from "./routes/pricingRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { logger } from "./utils/logger.js";
 
@@ -50,6 +51,7 @@ app.use(`${API_BASE}/branding`, brandingRoutes);
 app.use(`${API_BASE}/leads`, leadRoutes);
 app.use(`${API_BASE}/followups`, followUpRoutes);
 app.use(`${API_BASE}/library`, libraryRoutes);
+app.use(`${API_BASE}/pricing`, pricingRoutes);
 
 app.use(errorHandler);
 

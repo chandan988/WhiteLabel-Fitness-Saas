@@ -4,6 +4,7 @@ import {
   CalendarDaysIcon,
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
+  BanknotesIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Follow-ups", path: "/follow-ups", icon: CalendarDaysIcon },
   { label: "Workouts", path: "/workouts", icon: BoltIcon },
   { label: "Meals", path: "/meals", icon: ClipboardDocumentListIcon },
+  { label: "Pricing Plans", path: "/pricing", icon: BanknotesIcon },
   { label: "Settings", path: "/settings", icon: Cog6ToothIcon }
 ];
 

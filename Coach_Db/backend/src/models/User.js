@@ -46,6 +46,20 @@ const UserSchema = new mongoose.Schema(
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
       }
     ],
+    pricingPlan: {
+      tier: {
+        type: String,
+        enum: ["standard", "silver", "gold", "diamond"],
+        default: "standard"
+      },
+      planId: { type: mongoose.Schema.Types.ObjectId },
+      name: { type: String, default: "Standard" },
+      price: { type: Number, default: 0 },
+      currency: { type: String, default: "INR" },
+      features: [String],
+      assignedAt: { type: Date },
+      expiresAt: { type: Date }
+    },
     leadStatus: {
       type: String,
       enum: ["new", "hot", "warm", "cold"],

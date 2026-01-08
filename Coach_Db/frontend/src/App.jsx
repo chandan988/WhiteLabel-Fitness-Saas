@@ -10,6 +10,7 @@ import AssignWorkout from "./pages/dashboard/AssignWorkout.jsx";
 import ProgressTracking from "./pages/dashboard/ProgressTracking.jsx";
 import Workouts from "./pages/dashboard/Workouts.jsx";
 import Meals from "./pages/dashboard/Meals.jsx";
+import PricingPlans from "./pages/dashboard/PricingPlans.jsx";
 import NutritionPlans from "./pages/dashboard/NutritionPlans.jsx";
 import Recipes from "./pages/dashboard/Recipes.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
@@ -156,6 +157,14 @@ const OrgScopedRoutes = () => {
             element={
               <PrivateRoute>
                 <Meals />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="pricing"
+            element={
+              <PrivateRoute>
+                <PricingPlans />
               </PrivateRoute>
             }
           />

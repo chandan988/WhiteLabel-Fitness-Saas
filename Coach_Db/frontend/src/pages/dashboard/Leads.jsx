@@ -3,6 +3,7 @@ import DashboardLayout from "./DashboardLayout.jsx";
 import PrimaryButton from "../../components/PrimaryButton.jsx";
 import TextInput from "../../components/TextInput.jsx";
 import { useLeads } from "../../hooks/useLeads.js";
+import { getPricingPlans } from "../../services/api.js";
 
 const emptyForm = { name: "", email: "", phone: "" };
 const followUpDefaults = {
@@ -42,7 +43,8 @@ const Leads = () => {
     addLead,
     editLead,
     convertLead,
-    addFollowUp
+    addFollowUp,
+    assignPlan
   } = useLeads();
   const [showForm, setShowForm] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
@@ -54,6 +56,13 @@ const Leads = () => {
   const [followForm, setFollowForm] = useState(followUpDefaults);
   const [followSaving, setFollowSaving] = useState(false);
   const [followError, setFollowError] = useState("");
+  const [pricingPlans, setPricingPlans] = useState([]);
+  const [planLoading, setPlanLoading] = useState(true);
+  const [planError, setPlanError] = useState("");
+  const [planModal, setPlanModal] = useState(null);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [planEndDate, setPlanEndDate] = useState("");
+  const [planSaving, setPlanSaving] = useState(false);
 
   const openCreateForm = () => {
     setEditingLead(null);
@@ -110,6 +119,22 @@ const Leads = () => {
     setFollowUpModal(lead);
   };
 
+  const openPlanModal = (lead) => {
+    setPlanError("");
+    setPlanEndDate("");
+    const match =
+      pricingPlans.find((plan) => plan.tier === lead.pricingTier) ||
+      pricingPlans[0];
+    setSelectedPlanId(match?._id || "");
+    setPlanModal(lead);
+  };
+
+  const closePlanModal = () => {
+    setPlanModal(null);
+    setPlanError("");
+    setPlanEndDate("");
+  };
+
   useEffect(() => {
     if (!followUpModal) return;
     const latest = leads.find((lead) => lead.rawId === followUpModal.rawId);
@@ -117,6 +142,50 @@ const Leads = () => {
       setFollowUpModal(latest);
     }
   }, [leads, followUpModal?.rawId]);
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      setPlanLoading(true);
+      try {
+        const { data } = await getPricingPlans();
+        setPricingPlans(data || []);
+      } catch (err) {
+        setPlanError(
+          err.response?.data?.message || "Failed to load pricing plans"
+        );
+      } finally {
+        setPlanLoading(false);
+      }
+    };
+    loadPlans();
+  }, []);
+
+  const handleAssignPlan = async () => {
+    if (!planModal) return;
+    const plan = pricingPlans.find((entry) => entry._id === selectedPlanId);
+    if (!plan) {
+      setPlanError("Select a pricing plan.");
+      return;
+    }
+    if (plan.tier !== "standard" && !planEndDate) {
+      setPlanError("Select an end date for paid tiers.");
+      return;
+    }
+    setPlanSaving(true);
+    setPlanError("");
+    try {
+      await assignPlan({
+        userId: planModal.rawId,
+        planId: selectedPlanId,
+        endDate: plan.tier === "standard" ? null : planEndDate
+      });
+      closePlanModal();
+    } catch (err) {
+      setPlanError(err.response?.data?.message || "Failed to assign plan");
+    } finally {
+      setPlanSaving(false);
+    }
+  };
 
   const handleAddFollowUp = async () => {
     if (!followUpModal) return;
@@ -272,6 +341,7 @@ const Leads = () => {
                   <th className="pb-3">Email</th>
                   <th className="pb-3">Phone</th>
                   <th className="pb-3">Status</th>
+                  <th className="pb-3">Plan</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -291,12 +361,28 @@ const Leads = () => {
                       </span>
                     </td>
                     <td className="py-4">
+                      <span className="text-sm font-semibold text-brand-ink">
+                        {lead.pricingPlanName || "Standard"}
+                      </span>
+                      {lead.pricingExpiresAt && (
+                        <p className="text-xs text-brand-muted">
+                          Ends {formatDate(lead.pricingExpiresAt)}
+                        </p>
+                      )}
+                    </td>
+                    <td className="py-4">
                       <div className="flex items-center gap-3 justify-end">
                         <button
                           className="text-sm font-semibold text-brand-muted"
                           onClick={() => openFollowUps(lead)}
                         >
                           Follow-ups
+                        </button>
+                        <button
+                          className="text-sm font-semibold text-brand-muted"
+                          onClick={() => openPlanModal(lead)}
+                        >
+                          Set Plan
                         </button>
                         <button
                           className="text-sm font-semibold text-brand-primary"
@@ -319,7 +405,7 @@ const Leads = () => {
                 ))}
                 {!tableRows.length && (
                   <tr>
-                    <td colSpan="7" className="py-6 text-center text-brand-muted">
+                    <td colSpan="8" className="py-6 text-center text-brand-muted">
                       {searchQuery.trim()
                         ? "No leads match your search."
                         : "No leads pending. Great job!"}
@@ -547,6 +633,72 @@ const Leads = () => {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {planModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
+          <div className="bg-brand-card rounded-3xl shadow-xl w-full max-w-lg p-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-brand-ink">
+                  Set Pricing Plan
+                </h3>
+                <p className="text-sm text-brand-muted">
+                  {planModal.name || planModal.email}
+                </p>
+              </div>
+              <button
+                className="text-sm text-brand-muted hover:text-brand-ink"
+                onClick={closePlanModal}
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-brand-ink">
+                  Plan
+                </label>
+                <select
+                  value={selectedPlanId}
+                  onChange={(event) => setSelectedPlanId(event.target.value)}
+                  className="mt-1 w-full border border-brand-border rounded-2xl px-3 py-3 text-sm bg-brand-card"
+                  disabled={planLoading}
+                >
+                  {pricingPlans.map((plan) => (
+                    <option key={plan._id} value={plan._id}>
+                      {plan.name} ({plan.tier})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-brand-ink">
+                  Plan End Date
+                </label>
+                <input
+                  type="date"
+                  value={planEndDate}
+                  onChange={(event) => setPlanEndDate(event.target.value)}
+                  className="mt-1 w-full border border-brand-border rounded-2xl px-3 py-3 text-sm bg-brand-card"
+                />
+                <p className="text-xs text-brand-muted mt-1">
+                  Standard tier does not require an end date.
+                </p>
+              </div>
+              {planError && (
+                <p className="text-sm text-red-500">{planError}</p>
+              )}
+              <PrimaryButton
+                className="w-full"
+                onClick={handleAssignPlan}
+                disabled={planSaving}
+              >
+                {planSaving ? "Saving..." : "Assign Plan"}
+              </PrimaryButton>
             </div>
           </div>
         </div>

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { createClient, getClients, revertClientToLead } from "../services/api";
+import {
+  assignPricingPlan,
+  createClient,
+  getClients,
+  revertClientToLead
+} from "../services/api";
 
 export const useClients = () => {
   const [clients, setClients] = useState([]);
@@ -35,5 +40,17 @@ export const useClients = () => {
     }
   };
 
-  return { clients, loading, addClient, convertBackToLead, revertingId };
+  const assignPlan = async ({ clientId, planId, endDate }) => {
+    await assignPricingPlan({ clientId, planId, endDate });
+    await fetchAll();
+  };
+
+  return {
+    clients,
+    loading,
+    addClient,
+    convertBackToLead,
+    revertingId,
+    assignPlan
+  };
 };

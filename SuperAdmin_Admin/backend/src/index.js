@@ -10,7 +10,7 @@ import coachRoutes from "./routes/coachRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
 import { ensureSuperAdmin } from "./services/authService.js";
 import contentRoutes from "./routes/contentRoutes.js";
-import { ensureDailyContentSeeded } from "./services/dailyContentService.js";
+import { ensureDailyContentSeeded } from "./services/dailyContentService.js";      
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { startMobileSyncJob } from "./jobs/syncMobileData.js";
 

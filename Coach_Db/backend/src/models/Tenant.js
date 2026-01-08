@@ -29,6 +29,21 @@ const TenantSchema = new mongoose.Schema(
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     domain: { type: String },
     branding: { type: BrandingSchema, default: () => ({}) },
+    pricingPlans: [
+      {
+        tier: {
+          type: String,
+          enum: ["standard", "silver", "gold", "diamond"],
+          default: "standard"
+        },
+        name: { type: String, default: "Standard" },
+        price: { type: Number, default: 0 },
+        currency: { type: String, default: "INR" },
+        description: String,
+        features: [String],
+        isDefault: { type: Boolean, default: false }
+      }
+    ],
     profile: {
       businessType: String,
       services: [String],

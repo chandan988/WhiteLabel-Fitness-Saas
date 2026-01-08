@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { User } from "../models/User.js";
 import { Client } from "../models/Client.js";
+import { Tenant } from "../models/Tenant.js";
 import { logger } from "../utils/logger.js";
+import { getEffectivePricingPlan } from "./pricingService.js";
 
 const mapFollowUps = (followUps = []) =>
   followUps
@@ -19,6 +21,11 @@ const mapFollowUps = (followUps = []) =>
         new Date(a.createdAt || 0).getTime() -
         new Date(b.createdAt || 0).getTime()
     );
+
+const toPricingTenant = (tenant) => ({
+  ...(tenant || {}),
+  pricingPlans: Array.isArray(tenant?.pricingPlans) ? tenant.pricingPlans : []
+});
 
 export const getLeads = async ({ tenantId, inquiryDate, status }) => {
   logger.info("leadService.getLeads", { tenantId, inquiryDate, status });
@@ -44,12 +51,20 @@ export const getLeads = async ({ tenantId, inquiryDate, status }) => {
 
   const leads = await User.find(query)
     .select(
-      "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus"
+      "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus pricingPlan"
     )
     .sort({ createdAt: -1 })
     .lean();
 
-  return leads.map((lead) => ({
+  const tenant = await Tenant.findById(tenantId).select("pricingPlans").lean();
+  const pricingTenant = toPricingTenant(tenant);
+
+  return leads.map((lead) => {
+    const effectivePlan = getEffectivePricingPlan({
+      user: lead,
+      tenant: pricingTenant
+    });
+    return {
     id: lead.unique_id || lead._id?.toString(),
     name: lead.name || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
     email: lead.email,
@@ -57,20 +72,30 @@ export const getLeads = async ({ tenantId, inquiryDate, status }) => {
     rawId: lead._id?.toString(),
     inquiryDate: lead.createdAt,
     followUps: mapFollowUps(lead.followUps),
-    leadStatus: lead.leadStatus || "new"
-  }));
+    leadStatus: lead.leadStatus || "new",
+    pricingTier: effectivePlan.tier,
+    pricingPlanName: effectivePlan.name,
+    pricingExpiresAt: effectivePlan.expiresAt
+    };
+  });
 };
 
 export const getLeadById = async ({ leadId, tenantId }) => {
   logger.info("leadService.getLeadById", { leadId, tenantId });
   const lead = await User.findOne({ _id: leadId, tenantId, role: "consumer" })
     .select(
-      "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus"
+      "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus pricingPlan"
     )
     .lean();
   if (!lead) {
     throw new Error("Lead not found");
   }
+  const tenant = await Tenant.findById(tenantId).select("pricingPlans").lean();
+  const pricingTenant = toPricingTenant(tenant);
+  const effectivePlan = getEffectivePricingPlan({
+    user: lead,
+    tenant: pricingTenant
+  });
   return {
     id: lead.unique_id || lead._id?.toString(),
     name: lead.name || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
@@ -79,7 +104,10 @@ export const getLeadById = async ({ leadId, tenantId }) => {
     rawId: lead._id?.toString(),
     inquiryDate: lead.createdAt,
     followUps: mapFollowUps(lead.followUps),
-    leadStatus: lead.leadStatus || "new"
+    leadStatus: lead.leadStatus || "new",
+    pricingTier: effectivePlan.tier,
+    pricingPlanName: effectivePlan.name,
+    pricingExpiresAt: effectivePlan.expiresAt
   };
 };
 
@@ -111,6 +139,12 @@ export const createLead = async ({
     createdBy,
     tenantId
   });
+  const tenant = await Tenant.findById(tenantId).select("pricingPlans").lean();
+  const pricingTenant = toPricingTenant(tenant);
+  const effectivePlan = getEffectivePricingPlan({
+    user: lead,
+    tenant: pricingTenant
+  });
   return {
     id: lead.unique_id,
     name: lead.name || `${lead.firstName} ${lead.lastName}`.trim(),
@@ -119,7 +153,10 @@ export const createLead = async ({
     rawId: lead._id.toString(),
     inquiryDate: lead.createdAt,
     followUps: [],
-    leadStatus: lead.leadStatus || "new"
+    leadStatus: lead.leadStatus || "new",
+    pricingTier: effectivePlan.tier,
+    pricingPlanName: effectivePlan.name,
+    pricingExpiresAt: effectivePlan.expiresAt
   };
 };
 
@@ -146,6 +183,14 @@ export const updateLead = async (id, payload) => {
   }
   const lead = await User.findByIdAndUpdate(id, updates, { new: true });
   if (!lead) throw new Error("Lead not found");
+  const tenant = lead.tenantId
+    ? await Tenant.findById(lead.tenantId).select("pricingPlans").lean()
+    : null;
+  const pricingTenant = toPricingTenant(tenant);
+  const effectivePlan = getEffectivePricingPlan({
+    user: lead,
+    tenant: pricingTenant
+  });
   return {
     id: lead.unique_id || lead._id.toString(),
     name: lead.name || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
@@ -154,7 +199,10 @@ export const updateLead = async (id, payload) => {
     rawId: lead._id.toString(),
     inquiryDate: lead.createdAt,
     followUps: mapFollowUps(lead.followUps),
-    leadStatus: lead.leadStatus || "new"
+    leadStatus: lead.leadStatus || "new",
+    pricingTier: effectivePlan.tier,
+    pricingPlanName: effectivePlan.name,
+    pricingExpiresAt: effectivePlan.expiresAt
   };
 };
 

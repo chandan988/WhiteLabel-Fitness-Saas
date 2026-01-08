@@ -65,6 +65,14 @@ export const updateLead = (id, payload) => api.patch(`/leads/${id}`, payload);
 export const convertLead = (id) => api.post(`/leads/${id}/convert`);
 export const revertClientToLead = (clientId) =>
   api.post(`/leads/clients/${clientId}/revert`);
+
+export const getPricingPlans = () => api.get("/pricing/plans");
+export const createPricingPlan = (payload) => api.post("/pricing/plans", payload);
+export const updatePricingPlan = (id, payload) =>
+  api.patch(`/pricing/plans/${id}`, payload);
+export const deletePricingPlan = (id) => api.delete(`/pricing/plans/${id}`);
+export const assignPricingPlan = (payload) =>
+  api.post("/pricing/assign", payload);
 export const searchWorkoutLibrary = (params) =>
   api.get("/library/workouts", { params });
 export const searchFoodLibrary = (params) =>
