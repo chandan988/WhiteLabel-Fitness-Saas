@@ -29,6 +29,14 @@ const TenantSchema = new mongoose.Schema(
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     domain: { type: String },
     branding: { type: BrandingSchema, default: () => ({}) },
+    facebook: {
+      connected: { type: Boolean, default: false },
+      pageId: String,
+      pageName: String,
+      pageAccessToken: String,
+      pageTokenExpiresAt: Date,
+      connectedAt: Date
+    },
     pricingPlans: [
       {
         tier: {

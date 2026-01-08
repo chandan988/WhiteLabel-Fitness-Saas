@@ -14,7 +14,11 @@ export const useLeads = () => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [convertingId, setConvertingId] = useState(null);
-  const [filters, setFilters] = useState({ inquiryDate: "", status: "" });
+  const [filters, setFilters] = useState({
+    inquiryDate: "",
+    status: "",
+    source: ""
+  });
 
   const fetchLeads = useCallback(async (currentFilters = {}) => {
     setLoading(true);
@@ -26,6 +30,9 @@ export const useLeads = () => {
       }
       if (currentFilters.status) {
         params.status = currentFilters.status;
+      }
+      if (currentFilters.source) {
+        params.source = currentFilters.source;
       }
       const { data } = await getLeads(params);
       setLeads(data);
@@ -63,7 +70,7 @@ export const useLeads = () => {
   const convertLead = async (lead) => {
     setConvertingId(lead.rawId);
     try {
-      await convertLeadApi(lead.rawId);
+      await convertLeadApi(lead.rawId, { source: lead.source });
       setLeads((prev) => prev.filter((item) => item.rawId !== lead.rawId));
     } catch (err) {
       setError(err.response?.data?.message || "Failed to convert lead");

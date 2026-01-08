@@ -62,7 +62,8 @@ export const getLeads = (params = {}) => api.get("/leads", { params });
 export const getLeadById = (id) => api.get(`/leads/${id}`);
 export const createLead = (payload) => api.post("/leads", payload);
 export const updateLead = (id, payload) => api.patch(`/leads/${id}`, payload);
-export const convertLead = (id) => api.post(`/leads/${id}/convert`);
+export const convertLead = (id, payload) =>
+  api.post(`/leads/${id}/convert`, payload);
 export const revertClientToLead = (clientId) =>
   api.post(`/leads/clients/${clientId}/revert`);
 
@@ -79,5 +80,8 @@ export const searchFoodLibrary = (params) =>
   api.get("/library/foods", { params });
 export const addLeadFollowUp = (id, payload) =>
   api.post(`/leads/${id}/followups`, payload);
+export const getFacebookConnectUrl = () => api.get("/facebook/connect");
+export const getFacebookConnection = () => api.get("/facebook/connection");
+export const disconnectFacebook = () => api.delete("/facebook/connection");
 export const getDueFollowUps = (params = {}) =>
   api.get("/followups/due", { params });

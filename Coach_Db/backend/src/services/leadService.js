@@ -5,6 +5,14 @@ import { Client } from "../models/Client.js";
 import { Tenant } from "../models/Tenant.js";
 import { logger } from "../utils/logger.js";
 import { getEffectivePricingPlan } from "./pricingService.js";
+import {
+  addFacebookLeadFollowUp,
+  convertFacebookLead,
+  getDueFacebookFollowUps,
+  getFacebookLeadById,
+  listFacebookLeads,
+  updateFacebookLead
+} from "./facebookLeadService.js";
 
 const mapFollowUps = (followUps = []) =>
   followUps
@@ -27,8 +35,17 @@ const toPricingTenant = (tenant) => ({
   pricingPlans: Array.isArray(tenant?.pricingPlans) ? tenant.pricingPlans : []
 });
 
-export const getLeads = async ({ tenantId, inquiryDate, status }) => {
-  logger.info("leadService.getLeads", { tenantId, inquiryDate, status });
+export const getLeads = async ({ tenantId, inquiryDate, status, source }) => {
+  logger.info("leadService.getLeads", {
+    tenantId,
+    inquiryDate,
+    status,
+    source
+  });
+  const normalizedSource = source ? source.toString().toLowerCase() : "";
+  const includeApp = !normalizedSource || normalizedSource === "app";
+  const includeFacebook =
+    !normalizedSource || normalizedSource === "facebook";
   const query = {
     role: { $in: ["consumer"] },
     tenantId
@@ -49,46 +66,62 @@ export const getLeads = async ({ tenantId, inquiryDate, status }) => {
     query.leadStatus = status;
   }
 
-  const leads = await User.find(query)
-    .select(
-      "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus pricingPlan"
-    )
-    .sort({ createdAt: -1 })
-    .lean();
+  let appLeads = [];
+  if (includeApp) {
+    const leads = await User.find(query)
+      .select(
+        "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus pricingPlan"
+      )
+      .sort({ createdAt: -1 })
+      .lean();
 
-  const tenant = await Tenant.findById(tenantId).select("pricingPlans").lean();
-  const pricingTenant = toPricingTenant(tenant);
+    const tenant = await Tenant.findById(tenantId).select("pricingPlans").lean();
+    const pricingTenant = toPricingTenant(tenant);
 
-  return leads.map((lead) => {
-    const effectivePlan = getEffectivePricingPlan({
-      user: lead,
-      tenant: pricingTenant
+    appLeads = leads.map((lead) => {
+      const effectivePlan = getEffectivePricingPlan({
+        user: lead,
+        tenant: pricingTenant
+      });
+      return {
+        id: lead.unique_id || lead._id?.toString(),
+        name: lead.name || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
+        email: lead.email,
+        phone: lead.phone || "-",
+        rawId: lead._id?.toString(),
+        inquiryDate: lead.createdAt,
+        followUps: mapFollowUps(lead.followUps),
+        leadStatus: lead.leadStatus || "new",
+        pricingTier: effectivePlan.tier,
+        pricingPlanName: effectivePlan.name,
+        pricingExpiresAt: effectivePlan.expiresAt,
+        source: "app"
+      };
     });
-    return {
-    id: lead.unique_id || lead._id?.toString(),
-    name: lead.name || `${lead.firstName || ""} ${lead.lastName || ""}`.trim(),
-    email: lead.email,
-    phone: lead.phone || "-",
-    rawId: lead._id?.toString(),
-    inquiryDate: lead.createdAt,
-    followUps: mapFollowUps(lead.followUps),
-    leadStatus: lead.leadStatus || "new",
-    pricingTier: effectivePlan.tier,
-    pricingPlanName: effectivePlan.name,
-    pricingExpiresAt: effectivePlan.expiresAt
-    };
-  });
+  }
+
+  const facebookLeads = includeFacebook
+    ? await listFacebookLeads({ tenantId, inquiryDate, status })
+    : [];
+
+  return [...appLeads, ...facebookLeads].sort(
+    (a, b) => new Date(b.inquiryDate || 0) - new Date(a.inquiryDate || 0)
+  );
 };
 
-export const getLeadById = async ({ leadId, tenantId }) => {
-  logger.info("leadService.getLeadById", { leadId, tenantId });
+export const getLeadById = async ({ leadId, tenantId, source }) => {
+  logger.info("leadService.getLeadById", { leadId, tenantId, source });
+  const normalizedSource = source ? source.toString().toLowerCase() : "";
+  if (normalizedSource === "facebook") {
+    return getFacebookLeadById({ leadId, tenantId });
+  }
   const lead = await User.findOne({ _id: leadId, tenantId, role: "consumer" })
     .select(
       "name firstName lastName email phone unique_id tenantId createdAt followUps leadStatus pricingPlan"
     )
     .lean();
   if (!lead) {
-    throw new Error("Lead not found");
+    return getFacebookLeadById({ leadId, tenantId });
   }
   const tenant = await Tenant.findById(tenantId).select("pricingPlans").lean();
   const pricingTenant = toPricingTenant(tenant);
@@ -107,7 +140,8 @@ export const getLeadById = async ({ leadId, tenantId }) => {
     leadStatus: lead.leadStatus || "new",
     pricingTier: effectivePlan.tier,
     pricingPlanName: effectivePlan.name,
-    pricingExpiresAt: effectivePlan.expiresAt
+    pricingExpiresAt: effectivePlan.expiresAt,
+    source: "app"
   };
 };
 
@@ -160,8 +194,14 @@ export const createLead = async ({
   };
 };
 
-export const updateLead = async (id, payload) => {
+export const updateLead = async ({ id, payload, tenantId, source }) => {
   logger.info("leadService.updateLead", { id });
+  const normalizedSource = (source || payload?.source || "")
+    .toString()
+    .toLowerCase();
+  if (normalizedSource === "facebook") {
+    return updateFacebookLead({ leadId: id, payload, tenantId });
+  }
   if (payload.email) {
     const existing = await User.findOne({
       _id: { $ne: id },
@@ -182,7 +222,9 @@ export const updateLead = async (id, payload) => {
     updates.lastName = rest.join(" ") || firstName || payload.name;
   }
   const lead = await User.findByIdAndUpdate(id, updates, { new: true });
-  if (!lead) throw new Error("Lead not found");
+  if (!lead) {
+    return updateFacebookLead({ leadId: id, payload, tenantId });
+  }
   const tenant = lead.tenantId
     ? await Tenant.findById(lead.tenantId).select("pricingPlans").lean()
     : null;
@@ -202,17 +244,22 @@ export const updateLead = async (id, payload) => {
     leadStatus: lead.leadStatus || "new",
     pricingTier: effectivePlan.tier,
     pricingPlanName: effectivePlan.name,
-    pricingExpiresAt: effectivePlan.expiresAt
+    pricingExpiresAt: effectivePlan.expiresAt,
+    source: "app"
   };
 };
 
-export const convertLead = async ({ leadId, tenantId, userId }) => {
-  logger.info("leadService.convertLead", { leadId, tenantId });
+export const convertLead = async ({ leadId, tenantId, userId, source }) => {
+  logger.info("leadService.convertLead", { leadId, tenantId, source });
+  const normalizedSource = source ? source.toString().toLowerCase() : "";
+  if (normalizedSource === "facebook") {
+    return convertFacebookLead({ leadId, tenantId, userId });
+  }
   console.log("=== DEBUG CONVERT START ===");
 
   const lead = await User.findById(leadId);
   if (!lead) {
-    throw new Error("Lead not found");
+    return convertFacebookLead({ leadId, tenantId, userId });
   }
   if (
     lead.tenantId &&
@@ -355,9 +402,27 @@ export const addLeadFollowUp = async ({
   response,
   status,
   callbackAt,
-  createdBy
+  createdBy,
+  source
 }) => {
-  logger.info("leadService.addLeadFollowUp", { leadId, tenantId, status });
+  logger.info("leadService.addLeadFollowUp", {
+    leadId,
+    tenantId,
+    status,
+    source
+  });
+  const normalizedSource = source ? source.toString().toLowerCase() : "";
+  if (normalizedSource === "facebook") {
+    return addFacebookLeadFollowUp({
+      leadId,
+      tenantId,
+      asked,
+      response,
+      status,
+      callbackAt,
+      createdBy
+    });
+  }
   const followUpEntry = {
     asked,
     response,
@@ -449,7 +514,7 @@ export const getDueFollowUps = async ({ tenantId, date, rangeDays }) => {
     }
   ]);
 
-  return results.map((entry) => ({
+  const appResults = results.map((entry) => ({
     leadId: entry.leadId?.toString(),
     name: entry.name || "-",
     email: entry.email,
@@ -459,6 +524,17 @@ export const getDueFollowUps = async ({ tenantId, date, rangeDays }) => {
     response: entry.response,
     status: entry.status,
     callbackAt: entry.callbackAt,
-    createdAt: entry.createdAt
+    createdAt: entry.createdAt,
+    source: "app"
   }));
+
+  const facebookResults = await getDueFacebookFollowUps({
+    tenantId,
+    date,
+    rangeDays
+  });
+
+  return [...appResults, ...facebookResults].sort(
+    (a, b) => new Date(a.callbackAt || 0) - new Date(b.callbackAt || 0)
+  );
 };

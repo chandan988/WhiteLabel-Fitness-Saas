@@ -3,7 +3,12 @@ import DashboardLayout from "./DashboardLayout.jsx";
 import PrimaryButton from "../../components/PrimaryButton.jsx";
 import TextInput from "../../components/TextInput.jsx";
 import { useLeads } from "../../hooks/useLeads.js";
-import { getPricingPlans } from "../../services/api.js";
+import {
+  disconnectFacebook,
+  getFacebookConnectUrl,
+  getFacebookConnection,
+  getPricingPlans
+} from "../../services/api.js";
 
 const emptyForm = { name: "", email: "", phone: "" };
 const followUpDefaults = {
@@ -63,6 +68,11 @@ const Leads = () => {
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [planEndDate, setPlanEndDate] = useState("");
   const [planSaving, setPlanSaving] = useState(false);
+  const [fbConnection, setFbConnection] = useState({
+    connected: false,
+    pageName: null
+  });
+  const [fbLoading, setFbLoading] = useState(false);
 
   const openCreateForm = () => {
     setEditingLead(null);
@@ -160,6 +170,40 @@ const Leads = () => {
     loadPlans();
   }, []);
 
+  useEffect(() => {
+    const loadFacebook = async () => {
+      try {
+        const { data } = await getFacebookConnection();
+        setFbConnection(data || { connected: false });
+      } catch (err) {
+        setFbConnection({ connected: false });
+      }
+    };
+    loadFacebook();
+  }, []);
+
+  const handleConnectFacebook = async () => {
+    setFbLoading(true);
+    try {
+      const { data } = await getFacebookConnectUrl();
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } finally {
+      setFbLoading(false);
+    }
+  };
+
+  const handleDisconnectFacebook = async () => {
+    setFbLoading(true);
+    try {
+      await disconnectFacebook();
+      setFbConnection({ connected: false, pageName: null });
+    } finally {
+      setFbLoading(false);
+    }
+  };
+
   const handleAssignPlan = async () => {
     if (!planModal) return;
     const plan = pricingPlans.find((entry) => entry._id === selectedPlanId);
@@ -200,7 +244,8 @@ const Leads = () => {
         asked: followForm.asked.trim(),
         response: followForm.response.trim(),
         status: followForm.status,
-        callbackAt: followForm.callbackAt
+        callbackAt: followForm.callbackAt,
+        source: followUpModal.source
       });
       setFollowForm(followUpDefaults);
     } catch (err) {
@@ -243,11 +288,26 @@ const Leads = () => {
           return "bg-amber-100 text-amber-700";
         case "cold":
           return "bg-sky-100 text-sky-700";
+        case "converted":
+          return "bg-emerald-100 text-emerald-700";
         default:
           return "bg-brand-surface text-brand-ink";
       }
     })();
     return { label, className };
+  };
+
+  const sourceBadge = (source) => {
+    if (source === "facebook") {
+      return {
+        label: "Facebook Lead",
+        className: "bg-sky-100 text-sky-700"
+      };
+    }
+    return {
+      label: "App Lead",
+      className: "bg-emerald-100 text-emerald-700"
+    };
   };
 
   return (
@@ -298,12 +358,37 @@ const Leads = () => {
               <option value="warm">Warm</option>
               <option value="cold">Cold</option>
               <option value="new">New</option>
+              <option value="converted">Converted</option>
             </select>
             {filters.status && (
               <button
                 className="text-xs text-brand-muted underline"
                 onClick={() =>
                   setFilters((prev) => ({ ...prev, status: "" }))
+                }
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-brand-muted">Source</label>
+            <select
+              value={filters.source || ""}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, source: e.target.value }))
+              }
+              className="border border-brand-border rounded-2xl px-3 py-2 text-sm bg-brand-card"
+            >
+              <option value="">All</option>
+              <option value="app">App Leads</option>
+              <option value="facebook">Facebook Leads</option>
+            </select>
+            {filters.source && (
+              <button
+                className="text-xs text-brand-muted underline"
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, source: "" }))
                 }
               >
                 Clear
@@ -323,6 +408,17 @@ const Leads = () => {
           <PrimaryButton className="w-auto px-6 py-2" onClick={openCreateForm}>
             + Add Lead
           </PrimaryButton>
+          <PrimaryButton
+            className="w-auto px-6 py-2"
+            onClick={fbConnection.connected ? handleDisconnectFacebook : handleConnectFacebook}
+            disabled={fbLoading}
+          >
+            {fbLoading
+              ? "Please wait..."
+              : fbConnection.connected
+              ? `Disconnect Facebook${fbConnection.pageName ? ` (${fbConnection.pageName})` : ""}`
+              : "Connect Facebook Leads"}
+          </PrimaryButton>
         </div>
       </div>
       <div className="bg-brand-card rounded-3xl shadow-card p-6">
@@ -341,6 +437,7 @@ const Leads = () => {
                   <th className="pb-3">Email</th>
                   <th className="pb-3">Phone</th>
                   <th className="pb-3">Status</th>
+                  <th className="pb-3">Source</th>
                   <th className="pb-3">Plan</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
@@ -358,6 +455,13 @@ const Leads = () => {
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge(lead.leadStatus).className}`}
                       >
                         {statusBadge(lead.leadStatus).label}
+                      </span>
+                    </td>
+                    <td className="py-4">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${sourceBadge(lead.source).className}`}
+                      >
+                        {sourceBadge(lead.source).label}
                       </span>
                     </td>
                     <td className="py-4">
@@ -381,6 +485,7 @@ const Leads = () => {
                         <button
                           className="text-sm font-semibold text-brand-muted"
                           onClick={() => openPlanModal(lead)}
+                          disabled={lead.source === "facebook"}
                         >
                           Set Plan
                         </button>
@@ -405,7 +510,7 @@ const Leads = () => {
                 ))}
                 {!tableRows.length && (
                   <tr>
-                    <td colSpan="8" className="py-6 text-center text-brand-muted">
+                    <td colSpan="9" className="py-6 text-center text-brand-muted">
                       {searchQuery.trim()
                         ? "No leads match your search."
                         : "No leads pending. Great job!"}
